@@ -1,8 +1,8 @@
-import sentneuron as sn
+import seqgen as sg
 import numpy as np
 
-data = sn.data.TextData("input/txt/shakespeare.txt")
-# data = sn.data.MidiData("input/midi/")
+data = sg.data.TextData("input/txt/shakespeare.txt")
+# data = sg.data.MidiData("input/midi/")
 
 # Model parameters
 input_size = data.encoding_size
@@ -13,7 +13,7 @@ output_size = data.encoding_size
 lstm_layers  = 2
 lstm_dropout = 0
 
-neuron = sn.SentimentNeuron(input_size, hidden_size, output_size, lstm_layers, lstm_dropout)
+neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout)
 
 # Training parameters
 epochs        = 100000

@@ -6,9 +6,9 @@ import numpy as np
 
 from copy import deepcopy
 
-class SentimentNeuron(nn.Module):
+class SequenceGenerator(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0):
-        super(SentimentNeuron, self).__init__()
+        super(SequenceGenerator, self).__init__()
 
         # Init layer sizes
         self.input_size  = input_size
@@ -112,11 +112,7 @@ class SentimentNeuron(nn.Module):
                 ps = fc.softmax(y, dim=1)
 
                 # Sample the next index according to the probability distribution p
-                if np.random.rand() <= random_prob:
-                    # ps = self.__truncate_probabilities(np.exp(ps.numpy().ravel()), top_ps)
-                    ix = torch.multinomial(torch.Tensor(ps), 1).item()
-                else:
-                    ix = torch.argmax(ps).item()
+                ix = seq_dataset.sample(ps)
 
                 # Append the index to the sequence
                 seq.append(ix)
@@ -124,15 +120,3 @@ class SentimentNeuron(nn.Module):
                 # Encode x for the next step
                 x = seq_dataset.encode(seq_dataset.decode([ix])[0])
             return seq
-
-    def __truncate_probabilities(self, ps, top_ps=1):
-        higher_ps = np.argpartition(ps, -top_ps)[-top_ps:]
-
-        for i in set(range(len(ps))) - set(higher_ps):
-            ps[i] = 0.
-
-        sum_ps = min(1., sum(ps))
-        for i in higher_ps:
-            ps[i] += (1. - sum_ps)/len(higher_ps)
-
-        return ps

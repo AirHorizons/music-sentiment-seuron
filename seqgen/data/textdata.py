@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 from .dataset import Dataset
@@ -34,3 +35,6 @@ class TextData(Dataset):
     def random_example(self):
         rp = np.random.randint(self.data_size)
         return self.encode(self.data[rp])
+
+    def sample(self, ps):
+        return torch.multinomial(torch.Tensor(ps), 1).item()

@@ -65,6 +65,13 @@ class MidiData(Dataset):
         rp = np.random.randint(self.data_size)
         return self.encode(self.data[rp])
 
+    def sample(self, ps, top_ps=5, random_prob=0.5):
+        if np.random.rand() <= random_prob:
+            ps = self.__truncate_probabilities(ps.numpy().ravel(), top_ps)
+            ix = torch.multinomial(torch.Tensor(ps), 1).item()
+        else:
+            ix = torch.argmax(ps).item()
+
     def __midi_to_piano_roll(self, midi, sample_freq = 4, piano_range = 88):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
@@ -133,3 +140,15 @@ class MidiData(Dataset):
 
     def __str2ts(self, s):
         return [int(ch) for ch in s]
+
+    def __truncate_probabilities(self, ps, top_ps=1):
+        higher_ps = np.argpartition(ps, -top_ps)[-top_ps:]
+
+        for i in set(range(len(ps))) - set(higher_ps):
+            ps[i] = 0.
+
+        sum_ps = min(1., sum(ps))
+        for i in higher_ps:
+            ps[i] += (1. - sum_ps)/len(higher_ps)
+
+        return ps

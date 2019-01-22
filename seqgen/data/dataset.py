@@ -33,6 +33,10 @@ class Dataset(ABC):
     def random_example(self):
         pass
 
+    @abstractmethod
+    def sample(self, ps):
+        pass
+
     def onehot(self, ix):
         onehot = np.zeros(self.encoding_size)
         onehot[ix] = 1
