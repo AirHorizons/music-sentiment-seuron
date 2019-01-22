@@ -1,0 +1,39 @@
+import numpy as np
+from abc import ABC, abstractmethod
+
+class Dataset(ABC):
+    def __init__(self, datapath):
+        self.data, self.encoding_size, self.data_size = self.load(datapath)
+
+    @abstractmethod
+    def load(self, datapath):
+        pass
+
+    @abstractmethod
+    def encode(self, datapoint):
+        pass
+
+    @abstractmethod
+    def decode(self, datapoint):
+        pass
+
+    @abstractmethod
+    def slice(self, i, length):
+        pass
+
+    @abstractmethod
+    def labels(self, i, length):
+        pass
+
+    @abstractmethod
+    def write(self, data, path):
+        pass
+
+    @abstractmethod
+    def random_example(self):
+        pass
+
+    def onehot(self, ix):
+        onehot = np.zeros(self.encoding_size)
+        onehot[ix] = 1
+        return onehot
