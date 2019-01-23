@@ -22,7 +22,7 @@ learning_rate = 1e-3
 weight_decay  = 0
 
 # Sampling paramenters
-sample_size = 100
+sample_size =  2 * seq_length
 save_samples = True
 
 neuron.train(data, epochs, seq_length, learning_rate, weight_decay, sample_size, save_samples)
