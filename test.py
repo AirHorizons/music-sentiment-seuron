@@ -4,7 +4,7 @@ import numpy as np
 # data = sg.data.TextData("input/txt/shakespeare.txt")
 data = sg.data.MidiData("input/midi/")
 
-# Model parameters
+# Model layer parameters
 input_size = data.encoding_size
 hidden_size = 256
 output_size = data.encoding_size
@@ -13,7 +13,10 @@ output_size = data.encoding_size
 lstm_layers  = 2
 lstm_dropout = 0
 
-neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout)
+# Model device parameters: 'cpu' or 'cuda'
+enable_cuda = False
+
+neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
 
 # Training parameters
 epochs        = 100000

@@ -7,8 +7,16 @@ import numpy as np
 from copy import deepcopy
 
 class SequenceGenerator(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0):
+    def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
         super(SequenceGenerator, self).__init__()
+
+        # Set running device to "cpu" or "cuda" (if available)
+        self.device = torch.device("cpu")
+        if enable_cuda:
+            if torch.cuda.is_available():
+                self.device = torch.device("cuda")
+            else:
+                print("Cuda is not available. Model will run on the cpu.")
 
         # Init layer sizes
         self.input_size  = input_size
@@ -27,8 +35,8 @@ class SequenceGenerator(nn.Module):
         self.h = self.__init_hidden()
 
     def __init_hidden(self):
-        h = torch.randn(self.lstm_layers, 1, self.hidden_size)
-        c = torch.randn(self.lstm_layers, 1, self.hidden_size)
+        h = torch.randn(self.lstm_layers, 1, self.hidden_size, device=self.device)
+        c = torch.randn(self.lstm_layers, 1, self.hidden_size, device=self.device)
         return (h, c)
 
     def forward(self, xs):
@@ -69,11 +77,11 @@ class SequenceGenerator(nn.Module):
             ts = seq_dataset.labels(i, seq_length)
 
             # Run forward pass.
-            y = self(torch.tensor(xs, dtype=torch.float))
+            y = self(torch.tensor(xs, dtype=torch.float, device=self.device))
 
             # Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
-            loss = loss_function(y, torch.tensor(ts, dtype=torch.long))
+            loss = loss_function(y, torch.tensor(ts, dtype=torch.long, device=self.device))
 
             if n % 100 == 0:
                 self.train_log(n, loss, seq_dataset, sample_size, write_sample)
