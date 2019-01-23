@@ -43,7 +43,7 @@ class SequenceGenerator(nn.Module):
 
         return y
 
-    def train(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0):
+    def train(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0, sample_size=100, write_sample=False):
         # Data pointer
         i = 0
 
@@ -76,7 +76,7 @@ class SequenceGenerator(nn.Module):
             loss = loss_function(y, torch.tensor(ts, dtype=torch.long))
 
             if n % 100 == 0:
-                self.train_log(n, loss, seq_dataset, 1000, False)
+                self.train_log(n, loss, seq_dataset, sample_size, write_sample)
 
             loss.backward()
 
@@ -85,19 +85,19 @@ class SequenceGenerator(nn.Module):
             # Move data pointer
             i += seq_length
 
-    def train_log(self, n, loss, seq_dataset, log_size=100, write=False):
+    def train_log(self, n, loss, seq_dataset, sample_size=100, write_sample=False):
         with torch.no_grad():
-            sample_seq = self.sample(seq_dataset, log_size, seq_dataset.encoding_size, 1.)
+            sample_seq = self.sample(seq_dataset, sample_size)
             sample_dat = seq_dataset.decode(sample_seq)
 
             print('n = ', n)
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
 
-            if write:
+            if write_sample:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
-    def sample(self, seq_dataset, sample_len, top_ps=1, random_prob=0.5):
+    def sample(self, seq_dataset, sample_len):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
             x = seq_dataset.random_example()

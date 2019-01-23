@@ -1,4 +1,5 @@
 import os
+import torch
 import math    as ma
 import music21 as m21
 import numpy   as np
@@ -35,7 +36,7 @@ class MidiData(Dataset):
 
         vocab = list(set([self.__ts2str(ts) for ts in data]))
 
-        # Create dictionaries to support char to index conversion and vice-versa
+        # Create dictionaries to support piano time-step (ts) to index conversion and vice-versa
         self.ts_to_ix = { ts:i for i,ts in enumerate(vocab) }
         self.ix_to_ts = { i:ts for i,ts in enumerate(vocab) }
 
@@ -65,12 +66,12 @@ class MidiData(Dataset):
         rp = np.random.randint(self.data_size)
         return self.encode(self.data[rp])
 
-    def sample(self, ps, top_ps=5, random_prob=0.5):
+    def sample(self, ps, top_ps=10, random_prob=1.0):
         if np.random.rand() <= random_prob:
             ps = self.__truncate_probabilities(ps.numpy().ravel(), top_ps)
-            ix = torch.multinomial(torch.Tensor(ps), 1).item()
-        else:
-            ix = torch.argmax(ps).item()
+            return torch.multinomial(torch.Tensor(ps), 1).item()
+
+        return torch.argmax(ps).item()
 
     def __midi_to_piano_roll(self, midi, sample_freq = 4, piano_range = 88):
         try:
@@ -107,7 +108,7 @@ class MidiData(Dataset):
             while pitch >= piano_range:
                 pitch -= 12
 
-            piano_roll[offset, pitch]=1
+            piano_roll[offset, pitch] = 1
 
         return piano_roll
 
