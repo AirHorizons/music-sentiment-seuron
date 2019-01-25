@@ -19,7 +19,7 @@ enable_cuda = True
 neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
 
 # Training parameters
-epochs        = 200
+epochs        = 100000
 seq_length    = 100
 learning_rate = 1e-3
 weight_decay  = 0
