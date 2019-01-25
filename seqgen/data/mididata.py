@@ -68,8 +68,8 @@ class MidiData(Dataset):
 
     def sample(self, ps, top_ps=10, random_prob=1.0):
         if np.random.rand() <= random_prob:
-            ps = self.__truncate_probabilities(ps.numpy().ravel(), top_ps)
-            return torch.multinomial(torch.Tensor(ps), 1).item()
+            ps = self.__truncate_probabilities(ps.squeeze(), top_ps)
+            return torch.multinomial(ps, 1).item()
 
         return torch.argmax(ps).item()
 
@@ -143,7 +143,7 @@ class MidiData(Dataset):
         return [int(ch) for ch in s]
 
     def __truncate_probabilities(self, ps, top_ps=1):
-        higher_ps = np.argpartition(ps, -top_ps)[-top_ps:]
+        higher_ps = ps.topk(top_ps)[1]
 
         for i in set(range(len(ps))) - set(higher_ps):
             ps[i] = 0.

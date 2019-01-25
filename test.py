@@ -14,7 +14,7 @@ lstm_layers  = 2
 lstm_dropout = 0
 
 # Model device parameters: 'cpu' or 'cuda'
-enable_cuda = False
+enable_cuda = True
 
 neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
 
@@ -30,6 +30,6 @@ save_samples = True
 
 # neuron.load_state_dict(torch.load(sg.MODEL_PERSITANCE_PATH))
 # neuron.eval()
-neuron.train(data, epochs, seq_length, learning_rate, weight_decay, sample_size, save_samples)
+neuron.train(data, epochs, seq_length, learning_rate, weight_decay)
 
 neuron.sample(data, sample_size)

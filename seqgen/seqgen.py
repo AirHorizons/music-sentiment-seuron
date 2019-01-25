@@ -37,6 +37,9 @@ class SequenceGenerator(nn.Module):
         # Init hidden state with random weights
         self.h = self.__init_hidden()
 
+        # Set this model to run in the given device
+        self.to(device=self.device)
+
     def __init_hidden(self):
         h = torch.randn(self.lstm_layers, 1, self.hidden_size, device=self.device)
         c = torch.randn(self.lstm_layers, 1, self.hidden_size, device=self.device)
@@ -129,7 +132,7 @@ class SequenceGenerator(nn.Module):
             seq = []
 
             for t in range(sample_len):
-                y = self.forward(torch.tensor([x], dtype=torch.float))
+                y = self.forward(torch.tensor([x], dtype=torch.float, device=self.device))
 
                 # Transform output into a probability distribution for a multi-class problem
                 ps = fc.softmax(y, dim=1)
