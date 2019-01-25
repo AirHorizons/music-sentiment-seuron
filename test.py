@@ -1,8 +1,8 @@
 import seqgen as sg
-import numpy as np
+import numpy  as np
 
 # data = sg.data.TextData("input/txt/shakespeare.txt")
-data = sg.data.MidiData("input/midi/")
+data = sg.data.MidiData("input/midi/beethoven")
 
 # Model layer parameters
 input_size = data.encoding_size
@@ -28,5 +28,8 @@ weight_decay  = 0
 sample_size =  2 * seq_length
 save_samples = True
 
+# neuron.load_state_dict(torch.load(sg.MODEL_PERSITANCE_PATH))
+# neuron.eval()
 neuron.train(data, epochs, seq_length, learning_rate, weight_decay, sample_size, save_samples)
+
 neuron.sample(data, sample_size)

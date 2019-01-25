@@ -1,10 +1,13 @@
+import time
 import torch
-import torch.nn as nn
+import torch.nn            as nn
 import torch.nn.functional as fc
-import torch.optim as optim
-import numpy as np
+import torch.optim         as optim
 
-from copy import deepcopy
+MODEL_PERSITANCE_PATH = "output/model/"
+MODEL_LOG_FREQ        = 100
+MODEL_SAMPLE_LEN      = 100
+MODEL_SAVE_SAMPLES    = False
 
 class SequenceGenerator(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
@@ -51,7 +54,7 @@ class SequenceGenerator(nn.Module):
 
         return y
 
-    def train(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0, sample_size=100, write_sample=False):
+    def train(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0):
         # Data pointer
         i = 0
 
@@ -60,6 +63,9 @@ class SequenceGenerator(nn.Module):
 
         # Optimizer is AdaGrad
         optimizer = optim.Adam(self.parameters(), lr=lr, weight_decay=wd)
+
+        # Save time before trainning
+        t0 = time.time()
 
         for n in range(epochs):
             # Clear out the hidden state of the LSTM, detaching it from
@@ -83,8 +89,14 @@ class SequenceGenerator(nn.Module):
             # calling optimizer.step()
             loss = loss_function(y, torch.tensor(ts, dtype=torch.long, device=self.device))
 
-            if n % 100 == 0:
-                self.train_log(n, loss, seq_dataset, sample_size, write_sample)
+            if n % MODEL_LOG_FREQ == 0:
+                # Save time after every MODEL_LOG_FREQ epochs to calculate delta time
+                t1 = time.time()
+
+                self.train_log(n, loss, seq_dataset, t1 - t0)
+
+                # Save time before restart trainning
+                t0 = time.time()
 
             loss.backward()
 
@@ -93,16 +105,19 @@ class SequenceGenerator(nn.Module):
             # Move data pointer
             i += seq_length
 
-    def train_log(self, n, loss, seq_dataset, sample_size=100, write_sample=False):
-        with torch.no_grad():
-            sample_seq = self.sample(seq_dataset, sample_size)
-            sample_dat = seq_dataset.decode(sample_seq)
+        # Save trained model for sampling
+        torch.save(self.state_dict(), MODEL_PERSITANCE_PATH)
 
-            print('n = ', n)
+    def train_log(self, n, loss, seq_dataset, dt):
+        with torch.no_grad():
+            sample_dat = self.sample(seq_dataset, MODEL_SAMPLE_LEN)
+
+            print('epoch: n = ', n)
+            print('delta time: = ', dt, " s")
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
 
-            if write_sample:
+            if MODEL_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
     def sample(self, seq_dataset, sample_len):
@@ -127,4 +142,5 @@ class SequenceGenerator(nn.Module):
 
                 # Encode x for the next step
                 x = seq_dataset.encode(seq_dataset.decode([ix])[0])
-            return seq
+
+            return seq_dataset.decode(seq)
