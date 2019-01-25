@@ -2,7 +2,7 @@ import seqgen as sg
 import numpy  as np
 
 # data = sg.data.TextData("input/txt/shakespeare.txt")
-data = sg.data.MidiData("input/midi")
+data = sg.data.MidiData("input/midi/beethoven")
 
 # Model layer parameters
 input_size = data.encoding_size
