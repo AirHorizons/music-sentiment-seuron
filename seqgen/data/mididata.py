@@ -57,8 +57,11 @@ class MidiData(Dataset):
         return [self.ts_to_ix[self.__ts2str(ts)] for ts in self.data[i+1:i+1+length]]
 
     def write(self, piano_roll, path):
+        # Base class checks if output path exists
+        super().write(piano_roll,path)
+
         midi = self.__piano_roll_to_midi(piano_roll)
-        midi.open("output/" + path + ".mid", "wb")
+        midi.open(Dataset.OUTPUT_PATH + path + ".mid", "wb")
         midi.write()
         midi.close()
 

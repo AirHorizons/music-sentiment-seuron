@@ -1,15 +1,19 @@
+import os
 import time
+import datetime
 import torch
 import torch.nn            as nn
 import torch.nn.functional as fc
 import torch.optim         as optim
 
-MODEL_PERSITANCE_PATH = "output/model/"
-MODEL_LOG_FREQ        = 100
-MODEL_SAMPLE_LEN      = 100
-MODEL_SAVE_SAMPLES    = False
-
 class SequenceGenerator(nn.Module):
+
+    # Training Log constants
+    LOG_PERSIST_PATH = "output/models/"
+    LOG_FREQ         = 100
+    LOG_SAMPLE_LEN   = 100
+    LOG_SAVE_SAMPLES = False
+
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
         super(SequenceGenerator, self).__init__()
 
@@ -92,7 +96,7 @@ class SequenceGenerator(nn.Module):
             # calling optimizer.step()
             loss = loss_function(y, torch.tensor(ts, dtype=torch.long, device=self.device))
 
-            if n % MODEL_LOG_FREQ == 0:
+            if n % self.LOG_FREQ == 0:
                 # Save time after every MODEL_LOG_FREQ epochs to calculate delta time
                 t1 = time.time()
 
@@ -109,18 +113,18 @@ class SequenceGenerator(nn.Module):
             i += seq_length
 
         # Save trained model for sampling
-        torch.save(self.state_dict(), MODEL_PERSITANCE_PATH)
+        self.save()
 
     def train_log(self, n, loss, seq_dataset, dt):
         with torch.no_grad():
-            sample_dat = self.sample(seq_dataset, MODEL_SAMPLE_LEN)
+            sample_dat = self.sample(seq_dataset, self.LOG_SAMPLE_LEN)
 
             print('epoch: n = ', n)
-            print('delta time: = ', dt, " s")
+            print('delta time: = ', dt, "s")
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
 
-            if MODEL_SAVE_SAMPLES:
+            if self.LOG_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
     def sample(self, seq_dataset, sample_len):
@@ -147,3 +151,17 @@ class SequenceGenerator(nn.Module):
                 x = seq_dataset.encode(seq_dataset.decode([ix])[0])
 
             return seq_dataset.decode(seq)
+
+    def load(self, model_filename):
+        print("Loading model:", model_filename)
+        self.load_state_dict(torch.load(self.LOG_PERSIST_PATH + model_filename))
+        # self.eval()
+
+    def save(self):
+        # If LOG_PERSIST_PATH does not exist, create it
+        if not os.path.isdir(self.LOG_PERSIST_PATH):
+            os.mkdir(self.LOG_PERSIST_PATH)
+
+        # Persist model on disk with current timestamp
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
+        torch.save(self.state_dict(), self.LOG_PERSIST_PATH + "seqgen_" + timestamp + ".pth")

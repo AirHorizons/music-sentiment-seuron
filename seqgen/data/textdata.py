@@ -28,7 +28,10 @@ class TextData(Dataset):
         return [self.char_to_ix[ch] for ch in self.data[i+1:i+1 + length]]
 
     def write(self, text, path):
-        f = open("output/" + path + ".txt", "w")
+        # Base class checks if output path exists
+        super().write(piano_roll,path)
+
+        f = open(Dataset.OUTPUT_PATH + path + ".txt", "w")
         f.write(text)
         f.close()
 
