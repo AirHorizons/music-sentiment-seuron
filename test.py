@@ -2,15 +2,15 @@ import seqgen as sg
 import numpy  as np
 
 # data = sg.data.TextData("input/txt/shakespeare.txt")
-data = sg.data.MidiData("input/midi/beethoven")
+data = sg.data.MidiData("input/midi/")
 
 # Model layer parameters
 input_size = data.encoding_size
-hidden_size = 256
+hidden_size = 512
 output_size = data.encoding_size
 
 # Model hyper parameters
-lstm_layers  = 2
+lstm_layers  = 4
 lstm_dropout = 0
 
 # Model device parameters: 'cpu' or 'cuda'
@@ -20,7 +20,7 @@ neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers,
 
 # Training parameters
 epochs        = 100000
-seq_length    = 100
+seq_length    = 200
 learning_rate = 1e-3
 weight_decay  = 0
 
@@ -30,6 +30,4 @@ save_samples = True
 
 # neuron.load("output/models/seqgen_2019-01-26_13-26.pth")
 neuron.train(data, epochs, seq_length, learning_rate, weight_decay)
-sample = neuron.sample(data, sample_size)
-
-print(sample)
+neuron.write(neuron.sample(data, sample_size), "final.mid")

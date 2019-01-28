@@ -34,10 +34,3 @@ class TextData(Dataset):
         f = open(Dataset.OUTPUT_PATH + path + ".txt", "w")
         f.write(text)
         f.close()
-
-    def random_example(self):
-        rp = np.random.randint(self.data_size)
-        return self.encode(self.data[rp])
-
-    def sample(self, ps):
-        return torch.multinomial(torch.Tensor(ps), 1).item()

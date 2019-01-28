@@ -30,14 +30,6 @@ class Dataset(ABC):
     def labels(self, i, length):
         pass
 
-    @abstractmethod
-    def random_example(self):
-        pass
-
-    @abstractmethod
-    def sample(self, ps):
-        pass
-
     def write(self, data, path):
         if not os.path.isdir(self.OUTPUT_PATH):
             os.mkdir(self.OUTPUT_PATH)

@@ -1,5 +1,4 @@
 import os
-import torch
 import math    as ma
 import music21 as m21
 import numpy   as np
@@ -37,7 +36,10 @@ class MidiData(Dataset):
                     modulated_piano_roll = self.__modulate_piano_roll(piano_roll, i)
                     data = np.concatenate((data, modulated_piano_roll), axis=0)
 
+        self.write(data, "data.mid")
+
         vocab = list(set([self.__ts2str(ts) for ts in data]))
+        print(len(vocab))
 
         # Create dictionaries to support piano time-step (ts) to index conversion and vice-versa
         self.ts_to_ix = { ts:i for i,ts in enumerate(vocab) }
@@ -67,17 +69,6 @@ class MidiData(Dataset):
         midi.open(Dataset.OUTPUT_PATH + path + ".mid", "wb")
         midi.write()
         midi.close()
-
-    def random_example(self):
-        rp = np.random.randint(self.data_size)
-        return self.encode(self.data[rp])
-
-    def sample(self, ps, top_ps=10, random_prob=1.0):
-        if np.random.rand() <= random_prob:
-            ps = self.__truncate_probabilities(ps.squeeze(), top_ps)
-            return torch.multinomial(ps, 1).item()
-
-        return torch.argmax(ps).item()
 
     def __midi_to_piano_roll(self, midi, sample_freq = 4, piano_range = 88):
         try:
@@ -158,15 +149,3 @@ class MidiData(Dataset):
 
     def __str2ts(self, s):
         return [int(ch) for ch in s]
-
-    def __truncate_probabilities(self, ps, top_ps=1):
-        higher_ps = ps.topk(top_ps)[1]
-
-        for i in set(range(len(ps))) - set(higher_ps):
-            ps[i] = 0.
-
-        sum_ps = min(1., sum(ps))
-        for i in higher_ps:
-            ps[i] += (1. - sum_ps)/len(higher_ps)
-
-        return ps

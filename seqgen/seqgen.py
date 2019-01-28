@@ -12,6 +12,7 @@ class SequenceGenerator(nn.Module):
     LOG_PERSIST_PATH = "output/models/"
     LOG_FREQ         = 100
     LOG_SAMPLE_LEN   = 200
+    LOG_SAMPLE_TOP_K = 10
     LOG_SAVE_SAMPLES = True
 
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
@@ -23,7 +24,7 @@ class SequenceGenerator(nn.Module):
             if torch.cuda.is_available():
                 self.device = torch.device("cuda")
             else:
-                print("Cuda is not available. Model will run on the cpu.")
+                print("Cuda is not available. Training/Sampling will run on the cpu.")
 
         # Init layer sizes
         self.input_size  = input_size
@@ -117,7 +118,7 @@ class SequenceGenerator(nn.Module):
 
     def train_log(self, n, loss, seq_dataset, dt):
         with torch.no_grad():
-            sample_dat = self.sample(seq_dataset, self.LOG_SAMPLE_LEN)
+            sample_dat = self.sample(seq_dataset, self.LOG_SAMPLE_LEN, self.LOG_SAMPLE_TOP_K)
 
             print('epoch: n = ', n)
             print('delta time: = ', dt, "s")
@@ -127,22 +128,26 @@ class SequenceGenerator(nn.Module):
             if self.LOG_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
-    def sample(self, seq_dataset, sample_len):
+    def sample(self, seq_dataset, sample_len, top_ps=0):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
-            x = seq_dataset.random_example()
+            x = seq_dataset.encode(seq_dataset.data[0])
 
             # Initialize the sequence
             seq = []
 
+            self.h = self.__init_hidden()
             for t in range(sample_len):
                 y = self.forward(torch.tensor([x], dtype=torch.float, device=self.device))
 
-                # Transform output into a probability distribution for a multi-class problem
-                ps = fc.softmax(y, dim=1)
+                # Transform output into a probability distribution
+                ps = fc.softmax(y, dim=1).squeeze()
 
                 # Sample the next index according to the probability distribution p
-                ix = seq_dataset.sample(ps)
+                if top_ps > 0:
+                    ps = self.__truncate_probabilities(ps, top_ps)
+
+                ix = torch.multinomial(ps, 1).item()
 
                 # Append the index to the sequence
                 seq.append(ix)
@@ -165,3 +170,15 @@ class SequenceGenerator(nn.Module):
         # Persist model on disk with current timestamp
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
         torch.save(self.state_dict(), self.LOG_PERSIST_PATH + "seqgen_" + timestamp + ".pth")
+
+    def __truncate_probabilities(self, ps, top_ps=1):
+        higher_ps = ps.topk(top_ps)[1]
+
+        for i in set(range(len(ps))) - set(higher_ps):
+            ps[i] = 0.
+
+        sum_ps = min(1., sum(ps))
+        for i in higher_ps:
+            ps[i] += (1. - sum_ps)/len(higher_ps)
+
+        return ps
