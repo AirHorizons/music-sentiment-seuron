@@ -28,7 +28,7 @@ weight_decay  = 0
 sample_size =  2 * seq_length
 save_samples = True
 
-# neuron.load("seqgen_2019-01-24_18-40.pth")
+# neuron.load("output/models/seqgen_2019-01-26_13-26.pth")
 neuron.train(data, epochs, seq_length, learning_rate, weight_decay)
 sample = neuron.sample(data, sample_size)
 

@@ -11,7 +11,7 @@ class SequenceGenerator(nn.Module):
     # Training Log constants
     LOG_PERSIST_PATH = "output/models/"
     LOG_FREQ         = 100
-    LOG_SAMPLE_LEN   = 100
+    LOG_SAMPLE_LEN   = 200
     LOG_SAVE_SAMPLES = False
 
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
@@ -74,7 +74,7 @@ class SequenceGenerator(nn.Module):
         # Save time before trainning
         t0 = time.time()
 
-        for n in range(epochs):
+        for n in range(1, epochs):
             # Clear out the hidden state of the LSTM, detaching it from
             # its history on the last instance.
             self.h = self.__init_hidden()
@@ -154,7 +154,7 @@ class SequenceGenerator(nn.Module):
 
     def load(self, model_filename):
         print("Loading model:", model_filename)
-        self.load_state_dict(torch.load(self.LOG_PERSIST_PATH + model_filename))
+        self.load_state_dict(torch.load(model_filename))
         # self.eval()
 
     def save(self):

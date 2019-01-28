@@ -31,8 +31,11 @@ class MidiData(Dataset):
 
                 # Translate midi to stream of notes and chords
                 piano_roll = self.__midi_to_piano_roll(midi)
-                self.write(piano_roll, "test.mid")
-                data = np.concatenate((data, piano_roll), axis=0)
+
+                # Modulate the piano_roll for every possible key
+                for i in range(0, 12):
+                    modulated_piano_roll = self.__modulate_piano_roll(piano_roll, i)
+                    data = np.concatenate((data, modulated_piano_roll), axis=0)
 
         vocab = list(set([self.__ts2str(ts) for ts in data]))
 
@@ -138,6 +141,17 @@ class MidiData(Dataset):
         main_stream  = m21.stream.Stream([piano_stream])
 
         return m21.midi.translate.streamToMidiFile(main_stream)
+
+    def __modulate_piano_roll(self, piano_roll, key):
+        modulated = []
+        note_range = len(piano_roll[0]) - 1
+
+        for ts in piano_roll:
+                ts_str = self.__ts2str(ts[1:])
+                padded = '000000' + ts_str[1:] + '000000'
+                modulated.append(self.__str2ts(ts_str[0] + padded[key:key + note_range]))
+
+        return modulated
 
     def __ts2str(self, ts):
         return "".join(str(int(t)) for t in ts)
