@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 class Dataset(ABC):
 
     # Set path for saving data sampled from trained models.
-    OUTPUT_PATH = "output/samples"
+    OUTPUT_PATH = "output/samples/"
 
     def __init__(self, datapath):
         self.data, self.encoding_size, self.data_size = self.load(datapath)
