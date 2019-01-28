@@ -12,7 +12,7 @@ class SequenceGenerator(nn.Module):
     LOG_PERSIST_PATH = "output/models/"
     LOG_FREQ         = 100
     LOG_SAMPLE_LEN   = 200
-    LOG_SAVE_SAMPLES = False
+    LOG_SAVE_SAMPLES = True
 
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
         super(SequenceGenerator, self).__init__()
