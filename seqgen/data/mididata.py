@@ -6,7 +6,7 @@ import numpy   as np
 from .dataset import Dataset
 
 class MidiData(Dataset):
-    def load(self, datapath, modulate_range = 1):
+    def load(self, datapath, modulate_range=1):
         data = self.__midi_to_piano_roll(m21.midi.MidiFile())
 
         # Read every file in the given directory
@@ -75,8 +75,6 @@ class MidiData(Dataset):
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
             return np.empty((0, piano_range))
-
-        print(midi_stream)
 
         note_filter = m21.stream.filters.ClassFilter('Note')
         chord_filter = m21.stream.filters.ClassFilter('Chord')
