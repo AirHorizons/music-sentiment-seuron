@@ -6,11 +6,11 @@ data = sg.data.MidiData("input/midi/")
 
 # Model layer parameters
 input_size = data.encoding_size
-hidden_size = 512
+hidden_size = 256
 output_size = data.encoding_size
 
 # Model hyper parameters
-lstm_layers  = 4
+lstm_layers  = 2
 lstm_dropout = 0
 
 # Model device parameters: 'cpu' or 'cuda'
@@ -20,7 +20,7 @@ neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers,
 
 # Training parameters
 epochs        = 100000
-seq_length    = 200
+seq_length    = 100
 learning_rate = 1e-3
 weight_decay  = 0
 

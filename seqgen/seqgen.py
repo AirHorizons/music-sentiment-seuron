@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+import numpy               as np
 import torch
 import torch.nn            as nn
 import torch.nn.functional as fc
@@ -12,7 +13,7 @@ class SequenceGenerator(nn.Module):
     LOG_PERSIST_PATH = "output/models/"
     LOG_FREQ         = 100
     LOG_SAMPLE_LEN   = 200
-    LOG_SAMPLE_TOP_K = 10
+    LOG_SAMPLE_TOP_K = 3
     LOG_SAVE_SAMPLES = True
 
     def __init__(self, input_size, hidden_size, output_size, lstm_layers = 1, dropout = 0, enable_cuda = False):
@@ -128,15 +129,15 @@ class SequenceGenerator(nn.Module):
             if self.LOG_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
-    def sample(self, seq_dataset, sample_len, top_ps=0):
+    def sample(self, seq_dataset, sample_len, top_ps=0, sample_prob=0.5):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
-            x = seq_dataset.encode(seq_dataset.data[0])
+            rp = np.random.randint(seq_dataset.data_size)
+            x = seq_dataset.encode(seq_dataset.data[rp])
 
             # Initialize the sequence
             seq = []
 
-            self.h = self.__init_hidden()
             for t in range(sample_len):
                 y = self.forward(torch.tensor([x], dtype=torch.float, device=self.device))
 
@@ -144,10 +145,13 @@ class SequenceGenerator(nn.Module):
                 ps = fc.softmax(y, dim=1).squeeze()
 
                 # Sample the next index according to the probability distribution p
-                if top_ps > 0:
-                    ps = self.__truncate_probabilities(ps, top_ps)
+                if np.random.rand() <= sample_prob:
+                    if top_ps > 0:
+                        ps = self.__truncate_probabilities(ps, top_ps)
 
-                ix = torch.multinomial(ps, 1).item()
+                    ix = torch.multinomial(ps, 1).item()
+                else:
+                    ix = torch.argmax(ps).item()
 
                 # Append the index to the sequence
                 seq.append(ix)
