@@ -129,7 +129,7 @@ class SequenceGenerator(nn.Module):
             if self.LOG_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(n))
 
-    def sample(self, seq_dataset, sample_len, top_ps=0, sample_prob=0.75):
+    def sample(self, seq_dataset, sample_len, top_ps=0, sample_prob=0):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
             rp = np.random.randint(seq_dataset.data_size)

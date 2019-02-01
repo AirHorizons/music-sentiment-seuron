@@ -8,7 +8,17 @@ class Dataset(ABC):
     OUTPUT_PATH = "output/samples/"
 
     def __init__(self, datapath):
-        self.data, self.encoding_size, self.data_size = self.load(datapath)
+        # Load data and save size
+        self.data = self.load(datapath)
+        self.data_size = len(self.data)
+
+        # Create vocabulary from data and save size
+        vocab = list(set(self.data))
+        self.encoding_size = len(vocab)
+        
+        # Create dictionaries to support char to index conversion and vice-versa
+        self.symbol_to_ix = { ch:i for i,ch in enumerate(vocab) }
+        self.ix_to_symbol = { i:ch for i,ch in enumerate(vocab) }
 
     @abstractmethod
     def load(self, datapath):

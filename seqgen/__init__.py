@@ -1,2 +1,2 @@
-from .data import *
+from .datasets import *
 from .seqgen import SequenceGenerator
