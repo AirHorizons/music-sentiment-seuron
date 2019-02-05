@@ -5,7 +5,7 @@ class TextData(Dataset):
         return open(textpath, "r").read()
 
     def encode(self, ch):
-        return self.onehot(self.symbol_to_ix[ch])
+        return self.symbol_to_ix[ch]
 
     def decode(self, ixs):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)

@@ -1,7 +1,7 @@
 import seqgen as sg
 import numpy  as np
 
-# data = sg.data.TextData("input/txt/shakespeare.txt")
+# data = sg.datasets.TextData("input/txt/shakespeare.txt")
 data = sg.datasets.midi.NoteData("input/midi/")
 
 # Model layer parameters
@@ -28,6 +28,6 @@ weight_decay  = 0
 sample_size =  2 * seq_length
 save_samples = True
 
-# neuron.load("output/models/seqgen_2019-01-26_13-26.pth")
+# neuron.load("output/models/seqgen_2019-02-04_18-21.pth")
 neuron.train(data, epochs, seq_length, learning_rate, weight_decay)
-neuron.write(neuron.sample(data, sample_size), "final.mid")
+data.write(neuron.sample(data, sample_size), "final")

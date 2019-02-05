@@ -13,38 +13,49 @@ class NoteData(MidiData):
 
         note_filter = m21.stream.filters.ClassFilter('Note')
         chord_filter = m21.stream.filters.ClassFilter('Chord')
+        metronome_filter = m21.stream.filters.ClassFilter('MetronomeMark')
 
         # Parse the midi file into a list of notes (pitch, offset)
-        chords = {}
+        events = {}
 
-        # Append (pitch, offset) from individual notes
+        # Append note events
         for note in midi_stream.recurse().addFilter(note_filter):
-            if note.offset not in chords:
-                chords[note.offset] = []
+            offset = float(note.offset)
+            if offset not in events:
+                events[offset] = []
 
-            chords[note.offset].append((note.pitch.midi, note.duration.type, int(note.volume.velocity)))
+            events[offset].append((note.pitch.midi, note.duration.type, int(note.volume.velocity)))
 
-        # Append (pitch, offset) from chords
+        # Append chord events
         for chord in midi_stream.recurse().addFilter(chord_filter):
             pitches_in_chord = chord.pitches
             for pitch in pitches_in_chord:
-                if chord.offset not in chords:
-                    chords[chord.offset] = []
+                offset = float(chord.offset)
+                if offset not in events:
+                    events[offset] = []
 
-                chords[chord.offset].append((pitch.midi, chord.duration.type, int(chord.volume.velocity)))
+                events[offset].append((pitch.midi, chord.duration.type, int(chord.volume.velocity)))
 
-        # Get initial time signature
-        time_signature = midi_stream.getTimeSignatures()[0].ratioString
-        tempo = "t_" + str(ma.ceil(midi_stream.metronomeMarkBoundaries()[0][2].number))
+        # Append matronome events
+        for metro in midi_stream.recurse().addFilter(metronome_filter):
+            offset = float(metro.offset)
+            if offset not in events:
+                events[offset] = []
 
-        note_encoding = [time_signature, tempo]
-        for chord in sorted(chords.keys()):
-            for note in chords[chord]:
+            events[offset].append((-1, None, int(metro.number)))
+
+        note_encoding = []
+        for ev in sorted(events.keys()):
+            for note in events[ev]:
                 pitch, duration, velocity = note
-                note_encoding.append(str(pitch) + "_" + duration + "_" + str(velocity))
+                if pitch >= 0:
+                    note_encoding.append("n" + str(pitch) + "_" + duration + "_" + str(velocity))
+                else:
+                    note_encoding.append("t" + str(velocity))
+
             note_encoding.append(".")
 
-        self.write(note_encoding, "enc_test")
+        self.write(note_encoding, "encoded")
 
         return note_encoding
 
@@ -52,37 +63,32 @@ class NoteData(MidiData):
         # Set the volume of the notes to 100
         notes = []
 
-        ts = 0
         time_signature = m21.meter.TimeSignature("4/4")
-        tempo = 120
+
+        ts = 0
 
         for note in note_encoding:
             if note == ".":
                 ts += 1
-                continue
 
-            if note[1] == "/":
-                time_signature = m21.meter.TimeSignature(note)
-                notes.append(time_signature)
-                continue
+            elif note[0] == "t":
+                metro = m21.tempo.MetronomeMark(number=int(note[1:]))
+                metro.offset = ts * 0.25
+                notes.append(metro)
 
-            if note[0] == "t":
-                tempo = m21.tempo.MetronomeMark(number=int(note.split("_")[1]))
-                notes.append(tempo)
-                continue
+            elif note[0] == "n":
+                pitch = int(note.split("_")[0][1:])
+                duration = note.split("_")[1]
+                velocity = int(note.split("_")[2])
 
-            pitch = note.split("_")[0]
-            duration = note.split("_")[1]
-            velocity = note.split("_")[2]
+                if duration == "complex":
+                    continue
 
-            if duration == "zero" or duration == "complex":
-                continue
-
-            note = m21.note.Note(int(pitch))
-            note.duration = m21.duration.Duration(type=duration)
-            note.offset = ts * 0.5
-            note.volume.velocity = int(velocity)
-            notes.append(note)
+                note = m21.note.Note(pitch)
+                note.duration = m21.duration.Duration(type=duration)
+                note.offset = ts * 0.25
+                note.volume.velocity = velocity
+                notes.append(note)
 
         piano = m21.instrument.fromString("Piano")
         notes.insert(0, piano)

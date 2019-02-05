@@ -42,8 +42,7 @@ class MidiData(Dataset):
         pass
 
     def encode(self, ts):
-        ix = self.symbol_to_ix[ts]
-        return self.onehot(ix)
+        return self.symbol_to_ix[ts]
 
     def decode(self, ixs):
         # Create piano roll and return it
@@ -54,6 +53,12 @@ class MidiData(Dataset):
 
     def labels(self, i, length):
         return [self.symbol_to_ix[ts] for ts in self.data[i+1:i+1+length]]
+
+    def discretize_tempo(self, tempo):
+        pass
+
+    def discretize_velocity(self, velocity):
+        pass
 
     def write(self, encoded_midi, path):
         # Base class checks if output path exists

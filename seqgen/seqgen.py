@@ -36,7 +36,7 @@ class SequenceGenerator(nn.Module):
         self.lstm_layers = lstm_layers
 
         # Init model layers
-        self.ixh = nn.Linear(input_size, hidden_size)
+        self.ixh = nn.Embedding(input_size, hidden_size)
         self.hxh = nn.LSTM(hidden_size, hidden_size, lstm_layers, dropout=dropout)
         self.hxy = nn.Linear(hidden_size, output_size)
 
@@ -92,7 +92,7 @@ class SequenceGenerator(nn.Module):
             ts = seq_dataset.labels(i, seq_length)
 
             # Run forward pass.
-            y = self(torch.tensor(xs, dtype=torch.float, device=self.device))
+            y = self(torch.tensor(xs, dtype=torch.long, device=self.device))
 
             # Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -139,7 +139,7 @@ class SequenceGenerator(nn.Module):
             seq = []
 
             for t in range(sample_len):
-                y = self.forward(torch.tensor([x], dtype=torch.float, device=self.device))
+                y = self.forward(torch.tensor([x], dtype=torch.long, device=self.device))
 
                 # Transform output into a probability distribution
                 ps = fc.softmax(y, dim=1).squeeze()
