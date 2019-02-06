@@ -16,9 +16,11 @@ lstm_dropout = 0
 enable_cuda = True
 
 neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
-neuron.load("output/models/seqgen_2019-02-06_13-47.pth")
+neuron.load("output/models/seqgen_2019-02-06_13-55.pth")
 
-sample_size =  200
+sample_size = 100
+top_ps      = 0
+sample_prob = 0
 
-midi_sample = neuron.sample(data, sample_size)
+midi_sample = neuron.sample(data, sample_size, top_ps, sample_prob)
 data.write(midi_sample, "final_cpu")
