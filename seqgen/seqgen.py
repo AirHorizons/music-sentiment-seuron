@@ -63,7 +63,7 @@ class SequenceGenerator(nn.Module):
 
         return y
 
-    def train(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0):
+    def fit(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, wd=0):
         # Data pointer
         i = 0
 
@@ -163,8 +163,9 @@ class SequenceGenerator(nn.Module):
 
     def load(self, model_filename):
         print("Loading model:", model_filename)
-        self.load_state_dict(torch.load(model_filename))
-        # self.eval()
+        model = torch.load(model_filename, map_location=self.device)
+        self.load_state_dict(model)
+        self.eval()
 
     def save(self):
         # If LOG_PERSIST_PATH does not exist, create it

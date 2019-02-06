@@ -1,5 +1,4 @@
 import seqgen as sg
-import numpy  as np
 
 # data = sg.datasets.TextData("input/txt/shakespeare.txt")
 data = sg.datasets.midi.NoteData("input/midi/")
@@ -17,17 +16,9 @@ lstm_dropout = 0
 enable_cuda = True
 
 neuron = sg.SequenceGenerator(input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
+neuron.load("output/models/seqgen_2019-02-06_13-47.pth")
 
-# Training parameters
-epochs        = 100000
-seq_length    = 100
-learning_rate = 1e-3
-weight_decay  = 0
+sample_size =  200
 
-# Sampling paramenters
-sample_size =  2 * seq_length
-save_samples = True
-
-# neuron.load("output/models/seqgen_2019-02-04_18-21.pth")
-neuron.train(data, epochs, seq_length, learning_rate, weight_decay)
-data.write(neuron.sample(data, sample_size), "final")
+midi_sample = neuron.sample(data, sample_size)
+data.write(midi_sample, "final_cpu")

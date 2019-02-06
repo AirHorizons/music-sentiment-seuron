@@ -14,8 +14,10 @@ class Dataset(ABC):
 
         # Create vocabulary from data and save size
         vocab = list(set(self.data))
-        self.encoding_size = len(vocab)
+        vocab.sort()
         
+        self.encoding_size = len(vocab)
+
         # Create dictionaries to support char to index conversion and vice-versa
         self.symbol_to_ix = { ch:i for i,ch in enumerate(vocab) }
         self.ix_to_symbol = { i:ch for i,ch in enumerate(vocab) }
