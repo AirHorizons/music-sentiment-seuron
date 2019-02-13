@@ -4,7 +4,7 @@ import seqgen as sg
 data = sg.datasets.midi.NoteData("input/midi/")
 
 # Model layer parameters
-embed_size = 128
+embed_size = data.encoding_size
 input_size = 64
 hidden_size = 4096
 output_size = 256
