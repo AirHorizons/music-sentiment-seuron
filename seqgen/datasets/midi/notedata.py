@@ -24,9 +24,9 @@ class NoteData(MidiData):
             for note in events[ev]:
                 pitch, duration, velocity = note
                 if pitch >= 0:
-                    note_encoding.append("n" + str(pitch) + "_" + duration + "_" + str(velocity))
-                else:
-                    note_encoding.append("t" + str(velocity))
+                    note_encoding.append("n" + str(pitch) + "_" + duration)
+                # else:
+                #     note_encoding.append("t" + str(velocity))
 
             note_encoding.append(".")
 
@@ -81,21 +81,21 @@ class NoteData(MidiData):
 
             elif note[0] == "t":
                 metro = m21.tempo.MetronomeMark(number=int(note[1:]))
-                metro.offset = ts * 0.25
+                metro.offset = ts * 0.5
                 notes.append(metro)
 
             elif note[0] == "n":
                 pitch = int(note.split("_")[0][1:])
                 duration = note.split("_")[1]
-                velocity = int(note.split("_")[2])
+                # velocity = int(note.split("_")[2])
 
                 if duration == "complex":
                     continue
 
                 note = m21.note.Note(pitch)
                 note.duration = m21.duration.Duration(type=duration)
-                note.offset = ts * 0.25
-                note.volume.velocity = velocity
+                note.offset = ts * .5
+                note.volume.velocity = 100
                 notes.append(note)
 
         piano = m21.instrument.fromString("Piano")

@@ -1,2 +1,2 @@
 from .datasets import *
-from .seqgen import SequenceGenerator
+from .seqgen import SentimentNeuron
