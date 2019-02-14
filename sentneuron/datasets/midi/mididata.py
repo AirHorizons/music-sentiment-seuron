@@ -51,9 +51,6 @@ class MidiData(Dataset):
     def slice(self, i, length):
         return [self.encode(ts) for ts in self.data[i:i+length]]
 
-    def labels(self, i, length):
-        return [self.symbol_to_ix[ts] for ts in self.data[i+1:i+1+length]]
-
     def discretize_tempo(self, tempo):
         pass
 

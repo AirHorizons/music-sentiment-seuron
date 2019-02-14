@@ -1,25 +1,22 @@
-import seqgen as sg
+import sentneuron as sn
 
-# data = sg.datasets.TextData("input/txt/shakespeare.txt")
-data = sg.datasets.midi.NoteData("input/midi/")
+data = sn.datasets.TextData("input/txt/shakespeare.txt")
+# data = sn.datasets.midi.NoteData("input/midi/")
 
-# Model layer parameters
-embed_size = data.encoding_size
-input_size = 64
-hidden_size = 4096
-output_size = 256
+# Model layer sizes
+input_size  = data.encoding_size
+embed_size  = 64
+hidden_size = 128
+output_size = data.encoding_size
 
 # Model hyper parameters
 lstm_layers  = 1
 lstm_dropout = 0
 
-# Model device parameters: 'cpu' or 'cuda'
-enable_cuda = True
-
-neuron = sg.SentimentNeuron(embed_size, input_size, hidden_size, output_size, lstm_layers, lstm_dropout, enable_cuda)
+neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, lstm_layers, lstm_dropout)
 
 # Training parameters
-epochs        = 10000
+epochs        = 10
 seq_length    = 256
 learning_rate = 5e-4
 

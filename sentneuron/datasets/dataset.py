@@ -15,12 +15,12 @@ class Dataset(ABC):
         # Create vocabulary from data and save size
         vocab = list(set(self.data))
         vocab.sort()
-        
+
         self.encoding_size = len(vocab)
 
-        # Create dictionaries to support char to index conversion and vice-versa
-        self.symbol_to_ix = { ch:i for i,ch in enumerate(vocab) }
-        self.ix_to_symbol = { i:ch for i,ch in enumerate(vocab) }
+        # Create dictionaries to support symbol to index conversion and vice-versa
+        self.symbol_to_ix = { symb:i for i,symb in enumerate(vocab) }
+        self.ix_to_symbol = { i:symb for i,symb in enumerate(vocab) }
 
     @abstractmethod
     def load(self, datapath):
@@ -38,15 +38,6 @@ class Dataset(ABC):
     def slice(self, i, length):
         pass
 
-    @abstractmethod
-    def labels(self, i, length):
-        pass
-
     def write(self, data, path):
         if not os.path.isdir(self.OUTPUT_PATH):
             os.mkdir(self.OUTPUT_PATH)
-
-    def onehot(self, ix):
-        onehot = np.zeros(self.encoding_size)
-        onehot[ix] = 1
-        return onehot
