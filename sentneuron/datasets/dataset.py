@@ -27,16 +27,14 @@ class Dataset(ABC):
         pass
 
     @abstractmethod
-    def encode(self, datapoint):
-        pass
-
-    @abstractmethod
     def decode(self, datapoint):
         pass
 
-    @abstractmethod
     def slice(self, i, length):
-        pass
+        return [self.encode(ts) for ts in self.data[i:i+length]]
+
+    def encode(self, symb):
+        return self.symbol_to_ix[symb]
 
     def write(self, data, path):
         if not os.path.isdir(self.OUTPUT_PATH):

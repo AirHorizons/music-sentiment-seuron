@@ -41,15 +41,9 @@ class MidiData(Dataset):
     def note_encoding_to_midi(self, encoded_midi):
         pass
 
-    def encode(self, ts):
-        return self.symbol_to_ix[ts]
-
     def decode(self, ixs):
         # Create piano roll and return it
         return np.array([self.ix_to_symbol[ix] for ix in ixs])
-
-    def slice(self, i, length):
-        return [self.encode(ts) for ts in self.data[i:i+length]]
 
     def discretize_tempo(self, tempo):
         pass

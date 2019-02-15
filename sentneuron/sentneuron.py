@@ -8,7 +8,7 @@ import torch.optim    as optim
 import torch.autograd as ag
 
 # Local imports
-from .mlstm          import mLSTM
+from .models import mLSTM
 
 class SentimentNeuron(nn.Module):
 
@@ -93,6 +93,7 @@ class SentimentNeuron(nn.Module):
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
+        # Save trained model for sampling
         self.save()
 
     def __fit(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, lr_decay=0.7, grad_clip=5):
@@ -148,12 +149,10 @@ class SentimentNeuron(nn.Module):
             # Apply learning rate decay before the next epoch
             lr *= lr_decay
 
-        # Save trained model for sampling
-        self.save()
-
-    def train_log(self, epoch, batch_ix, loss, seq_dataset):
+    def train_log(self, epoch, batch_ix, loss, seq_dataset, sample_init_range=(0, 20)):
         with torch.no_grad():
-            sample_dat = self.sample(seq_dataset, self.LOG_SAMPLE_LEN)
+            i_init, i_end = sample_init_range
+            sample_dat = self.sample(seq_dataset, seq_dataset.data[i_init:i_end], self.LOG_SAMPLE_LEN)
 
             print('epoch:', epoch)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
@@ -163,10 +162,10 @@ class SentimentNeuron(nn.Module):
             if self.LOG_SAVE_SAMPLES:
                 seq_dataset.write(sample_dat, "sample_dat_" + str(epoch))
 
-    def sample(self, seq_dataset, sample_len, temperature=0.4):
+    def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
-            xs = seq_dataset.slice(0, 20)
+            xs = [seq_dataset.encode(symb) for symb in sample_init]
 
             # Initialize the sequence
             seq = []

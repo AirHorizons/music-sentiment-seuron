@@ -20,9 +20,11 @@ epochs        = 10
 seq_length    = 256
 learning_rate = 5e-4
 
-# Sampling paramenters
-sample_size =  2 * seq_length
-save_samples = True
-
 neuron.fit(data, epochs, seq_length, learning_rate)
-data.write(neuron.sample(data, sample_size), "final")
+
+# Sampling paramenters
+sample_size =  200
+sample_init = "I don't know "
+
+sample = neuron.sample(data, sample_init, sample_size)
+data.write(sample, "final_cpu")
