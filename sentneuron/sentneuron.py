@@ -1,11 +1,12 @@
 # External imports
-import os
-import time
 import datetime
 import torch
 import torch.nn       as nn
 import torch.optim    as optim
 import torch.autograd as ag
+import numpy          as np
+
+from sklearn.linear_model import LogisticRegression
 
 # Local imports
 from .models import mLSTM
@@ -13,20 +14,17 @@ from .models import mLSTM
 class SentimentNeuron(nn.Module):
 
     # Training Log constants
-    LOG_PERSIST_PATH = "output/models/"
+    LOG_PATH = "output/generative/"
     LOG_SAMPLE_LEN   = 200
     LOG_SAVE_SAMPLES = True
 
-    def __init__(self, input_size, embed_size, hidden_size, output_size, lstm_layers=1, dropout=0):
+    def __init__(self, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0):
         super(SentimentNeuron, self).__init__()
 
         # Set running device to "cpu" or "cuda" (if available)
         self.device = torch.device("cpu")
-
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
-        else:
-            print("Cuda is not available. Training/Sampling will run on the cpu.")
 
         # Init layer sizes
         self.input_size  = input_size
@@ -34,7 +32,7 @@ class SentimentNeuron(nn.Module):
         self.output_size = output_size
 
         # Init number of LSTM layers
-        self.lstm_layers = lstm_layers
+        self.n_layers = n_layers
 
         # Embedding layer
         self.i2h = nn.Embedding(input_size, embed_size)
@@ -44,7 +42,7 @@ class SentimentNeuron(nn.Module):
 
         # Hidden to hidden layers
         self.h2h = []
-        for i in range(lstm_layers):
+        for i in range(n_layers):
             # Create a new mLSTM layer and add to the model
             h2h = mLSTM(embed_size, hidden_size)
             self.add_module('layer_%d' % i, h2h)
@@ -59,7 +57,13 @@ class SentimentNeuron(nn.Module):
         self.to(device=self.device)
 
     def forward(self, x, h):
-		 # First layer maps the input layer to the hidden layer
+        h, emb_x = self.embed(x, h)
+        y = self.h2y(emb_x)
+
+        return h, y
+
+    def embed(self, x, h):
+        # First layer maps the input layer to the hidden layer
         emb_x = self.i2h(x)
 
         h_0, c_0 = h
@@ -83,20 +87,18 @@ class SentimentNeuron(nn.Module):
         h_1 = torch.stack(h_1)
         c_1 = torch.stack(c_1)
 
-        y = self.h2y(emb_x)
+        return (h_1, c_1), emb_x
 
-        return (h_1, c_1), y
-
-    def fit(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, grad_clip=5):
+    def fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, grad_clip=5):
         try:
-            self.__fit(seq_dataset, epochs, seq_length, lr, grad_clip)
+            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
         # Save trained model for sampling
         self.save()
 
-    def __fit(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, lr_decay=0.7, grad_clip=5):
+    def __fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, lr_decay=0.7, grad_clip=5):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
@@ -144,12 +146,12 @@ class SentimentNeuron(nn.Module):
 
                 # Calculate average loss and log the results of this batch
                 smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                self.train_log(epoch, (batch_ix, batch_size), smooth_loss, seq_dataset)
+                self.__fit_sequence_log(epoch, (batch_ix, batch_size), smooth_loss, seq_dataset)
 
             # Apply learning rate decay before the next epoch
             lr *= lr_decay
 
-    def train_log(self, epoch, batch_ix, loss, seq_dataset, sample_init_range=(0, 20)):
+    def __fit_sequence_log(self, epoch, batch_ix, loss, seq_dataset, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
             sample_dat = self.sample(seq_dataset, seq_dataset.data[i_init:i_end], self.LOG_SAMPLE_LEN)
@@ -160,7 +162,41 @@ class SentimentNeuron(nn.Module):
             print('----\n' + str(sample_dat) + '\n----')
 
             if self.LOG_SAVE_SAMPLES:
-                seq_dataset.write(sample_dat, "sample_dat_" + str(epoch))
+                seq_dataset.write(sample_dat, self.LOG_PATH + "/samples/sample_dat_" + str(epoch))
+
+    def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
+        with torch.no_grad():
+            train_xs, train_ys = sen_data.train
+            print(len(train_xs))
+            for i in range(len(train_xs)):
+                train_xs[i] = self.__embed_sequence(seq_dataset, train_xs[i])
+
+            print(len(validation_xs))
+            validation_xs, validation_ys = sen_data.validation
+            for i in range(len(validation_xs)):
+                validation_xs[i] = self.__embed_sequence(seq_dataset, validation_xs[i])
+
+            print(len(test_xs))
+            test_xs, test_ys = sen_data.test
+            for i in range(len(test_xs)):
+                test_xs[i] = self.__embed_sequence(seq_dataset, test_xs[i])
+
+            scores = []
+            for i, c in enumerate(C):
+                model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i)
+                model.fit(train_xs, train_ys)
+
+                score = model.score(validation_xs, validation_ys)
+                scores.append(score)
+
+            c = C[np.argmax(scores)]
+
+            model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C))
+            model.fit(train_xs, train_ys)
+            score = model.score(test_xs, test_ys) * 100.
+
+            n_not_zero = np.sum(model.coef_ != 0)
+            return score, c, n_not_zero
 
     def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
         with torch.no_grad():
@@ -183,13 +219,10 @@ class SentimentNeuron(nn.Module):
                 ps = torch.softmax(y[0].squeeze().div(temperature), dim=0)
 
                 # Sample the next index according to the probability distribution ps
-                ix = torch.multinomial(ps, 1).item()
+                x = torch.multinomial(ps, 1).item()
 
                 # Append the index to the sequence
-                seq.append(ix)
-
-                # Encode x for the next step
-                x = seq_dataset.encode(seq_dataset.decode([ix])[0])
+                seq.append(x)
 
             return seq_dataset.decode(seq)
 
@@ -202,26 +235,36 @@ class SentimentNeuron(nn.Module):
 
     def save(self):
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
-        model_filename = self.LOG_PERSIST_PATH + "seqgen_" + timestamp + ".pth"
+        model_filename = self.LOG_PATH + "/models/seqgen_" + timestamp + ".pth"
 
-        print("saving model:", model_filename)
-
-        # If LOG_PERSIST_PATH does not exist, create it
-        if not os.path.isdir(self.LOG_PERSIST_PATH):
-            os.mkdir(self.LOG_PERSIST_PATH)
+        print("Saving model:", model_filename)
 
         # Persist model on disk with current timestamp
         torch.save(self.state_dict(), model_filename)
 
     def __init_hidden(self, batch_size=1):
-        h = torch.zeros(self.lstm_layers, batch_size, self.hidden_size, device=self.device)
-        c = torch.zeros(self.lstm_layers, batch_size, self.hidden_size, device=self.device)
+        h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
+        c = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
         return (h, c)
 
     def __clip_gradient(self, clip):
         totalnorm = 0
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
+
+    def __embed_sequence(self, seq_dataset, sequence):
+        with torch.no_grad():
+            enc_sentence = []
+            for element in sequence:
+                try:
+                    enc_sentence.append(seq_dataset.encode(element))
+                except KeyError as e:
+                    pass
+
+            enc_sentence_tensor = torch.tensor(enc_sentence, dtype=torch.long, device=self.device)
+            _, embedded_sequence = self.embed(enc_sentence_tensor, self.__init_hidden())
+
+            return embedded_sequence.tolist()
 
     def __truncate_probabilities(self, ps, top_ps=1):
         higher_ps = ps.topk(top_ps)[1]

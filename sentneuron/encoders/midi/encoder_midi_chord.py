@@ -2,9 +2,9 @@ import math    as ma
 import music21 as m21
 import numpy   as np
 
-from .mididata import MidiData
+from .encoder_midi import EncoderMidi
 
-class ChordData(MidiData):
+class EncoderMidiChord(EncoderMidi):
     def midi_to_note_encoding(self, midi, sample_freq = 4, piano_range = 88, modulate_range=1):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)

@@ -2,10 +2,7 @@ import os    as os
 import numpy as np
 from abc import ABC, abstractmethod
 
-class Dataset(ABC):
-
-    # Set path for saving data sampled from trained models.
-    OUTPUT_PATH = "output/samples/"
+class Encoder(ABC):
 
     def __init__(self, datapath):
         # Load data and save size
@@ -30,12 +27,12 @@ class Dataset(ABC):
     def decode(self, datapoint):
         pass
 
+    @abstractmethod
+    def write(self, data, path):
+        pass
+
     def slice(self, i, length):
         return [self.encode(ts) for ts in self.data[i:i+length]]
 
     def encode(self, symb):
         return self.symbol_to_ix[symb]
-
-    def write(self, data, path):
-        if not os.path.isdir(self.OUTPUT_PATH):
-            os.mkdir(self.OUTPUT_PATH)

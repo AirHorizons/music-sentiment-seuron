@@ -3,9 +3,9 @@ import music21 as m21
 import numpy   as np
 
 from abc import ABC, abstractmethod
-from ..dataset import Dataset
+from ..encoder import Encoder
 
-class MidiData(Dataset):
+class EncoderMidi(Encoder):
     def load(self, datapath):
         encoded_midi = []
 
@@ -53,9 +53,7 @@ class MidiData(Dataset):
 
     def write(self, encoded_midi, path):
         # Base class checks if output path exists
-        super().write(encoded_midi, path)
-
         midi = self.note_encoding_to_midi(encoded_midi)
-        midi.open(Dataset.OUTPUT_PATH + path + ".mid", "wb")
+        midi.open(path + ".mid", "wb")
         midi.write()
         midi.close()

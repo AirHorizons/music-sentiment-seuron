@@ -1,6 +1,6 @@
-from .dataset import Dataset
+from .encoder import Encoder
 
-class TextData(Dataset):
+class EncoderText(Encoder):
     def load(self, textpath):
         return open(textpath, "r").read()
 
@@ -8,9 +8,6 @@ class TextData(Dataset):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)
 
     def write(self, text, path):
-        # Base class checks if output path exists
-        super().write(text, path)
-
-        f = open(Dataset.OUTPUT_PATH + path + ".txt", "a")
+        f = open(path + ".txt", "a")
         f.write(text)
         f.close()

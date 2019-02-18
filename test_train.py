@@ -1,30 +1,20 @@
 import sentneuron as sn
 
-data = sn.datasets.TextData("input/txt/shakespeare.txt")
+seq_data = sn.encoders.EncoderText("input/generative/txt/shakespeare.txt")
+sen_data = sn.encoders.SentimentData("input/classifier/sst", "sentence", "label")
 # data = sn.datasets.midi.NoteData("input/midi/")
 
 # Model layer sizes
-input_size  = data.encoding_size
+input_size  = seq_data.encoding_size
 embed_size  = 64
 hidden_size = 128
-output_size = data.encoding_size
+output_size = seq_data.encoding_size
 
-# Model hyper parameters
-lstm_layers  = 1
-lstm_dropout = 0
+neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0)
 
-neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, lstm_layers, lstm_dropout)
+neuron.fit_sequence(seq_data, epochs=10, seq_length=256, lr=5e-4)
+neuron.fit_sentiment(sen_data, sen_data)
 
-# Training parameters
-epochs        = 10
-seq_length    = 256
-learning_rate = 5e-4
-
-neuron.fit(data, epochs, seq_length, learning_rate)
-
-# Sampling paramenters
-sample_size =  200
-sample_init = "I don't know "
-
-sample = neuron.sample(data, sample_init, sample_size)
-data.write(sample, "final_cpu")
+# Sampling
+sample = neuron.sample(data, sample_init="I don't know ", sample_len=200)
+seq_data.write(sample, "output/generative/samples/sample_trained_model")

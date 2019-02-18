@@ -2,9 +2,9 @@ import math    as ma
 import music21 as m21
 import numpy   as np
 
-from .mididata import MidiData
+from .encoder_midi import EncoderMidi
 
-class NoteData(MidiData):
+class EncoderMidiNote(EncoderMidi):
     def midi_to_note_encoding(self, midi):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
