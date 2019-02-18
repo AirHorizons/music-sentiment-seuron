@@ -165,19 +165,14 @@ class SentimentNeuron(nn.Module):
     def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
             train_xs, train_ys = sen_data.train
-            train_xs, train_ys = train_xs[0:10], train_ys[0:10]
-
             for i in range(len(train_xs)):
                 train_xs[i] = self.__embed_sequence(seq_dataset, train_xs[i])
 
             validation_xs, validation_ys = sen_data.validation
-            validation_xs, validation_ys = validation_xs[0:10], validation_ys[0:10]
-
             for i in range(len(validation_xs)):
                 validation_xs[i] = self.__embed_sequence(seq_dataset, validation_xs[i])
 
             test_xs, test_ys = sen_data.test
-            test_xs, test_ys = test_xs[0:10], test_ys[0:10]
             for i in range(len(test_xs)):
                 test_xs[i] = self.__embed_sequence(seq_dataset, test_xs[i])
 
