@@ -15,8 +15,9 @@ output_size = seq_data.encoding_size
 neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0)
 neuron.load("output/generative/models/seqgen_2019-02-14_13-13.pth")
 
-neuron.fit_sentiment(seq_data, sen_data)
+score, _, _ = neuron.fit_sentiment(seq_data, sen_data)
+print(score)
 
 # Sampling
 sample = neuron.sample(seq_data, sample_init="I don't know ", sample_len=200)
-data.write(sample, "output/generative/samples/sample_loaded_model")
+seq_data.write(sample, "output/generative/samples/sample_loaded_model")

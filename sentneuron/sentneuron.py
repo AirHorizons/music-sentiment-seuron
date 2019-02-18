@@ -57,12 +57,6 @@ class SentimentNeuron(nn.Module):
         self.to(device=self.device)
 
     def forward(self, x, h):
-        h, emb_x = self.embed(x, h)
-        y = self.h2y(emb_x)
-
-        return h, y
-
-    def embed(self, x, h):
         # First layer maps the input layer to the hidden layer
         emb_x = self.i2h(x)
 
@@ -87,7 +81,9 @@ class SentimentNeuron(nn.Module):
         h_1 = torch.stack(h_1)
         c_1 = torch.stack(c_1)
 
-        return (h_1, c_1), emb_x
+        y = self.h2y(emb_x)
+
+        return (h_1, c_1), y
 
     def fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, grad_clip=5):
         try:
@@ -112,7 +108,7 @@ class SentimentNeuron(nn.Module):
         batch_size = seq_dataset.data_size//seq_length
 
         for epoch in range(epochs):
-            h_init = self.__init_hidden()
+            h = self.__init_hidden()
 
             # Each epoch consists of one entire pass over the dataset
             for batch_ix in range(batch_size):
@@ -128,10 +124,12 @@ class SentimentNeuron(nn.Module):
                 loss = 0
                 for t in range(seq_length):
                     # Run forward pass and get output y
-                    h, y = self(torch.tensor(batch[t], dtype=torch.long, device=self.device), h)
+                    batch_tensor_x = torch.tensor(batch[t], dtype=torch.long, device=self.device)
+                    h, y = self(batch_tensor_x, h)
 
                     # Calculate loss in respect to the target ts
-                    loss += loss_function(y, torch.tensor([batch[t+1]], dtype=torch.long, device=self.device))
+                    batch_tensor_t = torch.tensor([batch[t+1]], dtype=torch.long, device=self.device)
+                    loss += loss_function(y, batch_tensor_t)
 
                 loss.backward()
 
@@ -167,23 +165,25 @@ class SentimentNeuron(nn.Module):
     def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
             train_xs, train_ys = sen_data.train
-            print(len(train_xs))
+            train_xs, train_ys = train_xs[0:10], train_ys[0:10]
+
             for i in range(len(train_xs)):
                 train_xs[i] = self.__embed_sequence(seq_dataset, train_xs[i])
 
-            print(len(validation_xs))
             validation_xs, validation_ys = sen_data.validation
+            validation_xs, validation_ys = validation_xs[0:10], validation_ys[0:10]
+
             for i in range(len(validation_xs)):
                 validation_xs[i] = self.__embed_sequence(seq_dataset, validation_xs[i])
 
-            print(len(test_xs))
             test_xs, test_ys = sen_data.test
+            test_xs, test_ys = test_xs[0:10], test_ys[0:10]
             for i in range(len(test_xs)):
                 test_xs[i] = self.__embed_sequence(seq_dataset, test_xs[i])
 
             scores = []
             for i, c in enumerate(C):
-                model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i)
+                model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
                 model.fit(train_xs, train_ys)
 
                 score = model.score(validation_xs, validation_ys)
@@ -191,7 +191,7 @@ class SentimentNeuron(nn.Module):
 
             c = C[np.argmax(scores)]
 
-            model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C))
+            model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
             model.fit(train_xs, train_ys)
             score = model.score(test_xs, test_ys) * 100.
 
@@ -254,17 +254,18 @@ class SentimentNeuron(nn.Module):
 
     def __embed_sequence(self, seq_dataset, sequence):
         with torch.no_grad():
-            enc_sentence = []
+            hidden = self.__init_hidden()
+
             for element in sequence:
                 try:
-                    enc_sentence.append(seq_dataset.encode(element))
+                    x = seq_dataset.encode(element)
+                    tensor_x = torch.tensor(x, dtype=torch.long, device=self.device)
+                    hidden, y = self.forward(tensor_x, hidden)
                 except KeyError as e:
                     pass
 
-            enc_sentence_tensor = torch.tensor(enc_sentence, dtype=torch.long, device=self.device)
-            _, embedded_sequence = self.embed(enc_sentence_tensor, self.__init_hidden())
-
-            return embedded_sequence.tolist()
+            h, c = hidden
+            return c[0][0].tolist()
 
     def __truncate_probabilities(self, ps, top_ps=1):
         higher_ps = ps.topk(top_ps)[1]
