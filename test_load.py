@@ -1,8 +1,7 @@
 import sentneuron as sn
 
 seq_data = sn.encoders.EncoderText("input/generative/txt/shakespeare.txt")
-sen_data = sn.encoders.SentimentData("input/classifier/sst", "sentence", "label")
-
+sen_data = sn.encoders.SentimentData("input/classifier/sst", "sentence", "label", slice=(110,120))
 # data = sg.datasets.midi.NoteData("input/midi/")
 
 # Model layer sizes
@@ -11,13 +10,14 @@ embed_size  = 64
 hidden_size = 4096
 output_size = seq_data.encoding_size
 
-# Loading model
+# Loading trainned model for predicting elements in a sequence.
 neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0)
 neuron.load("output/generative/models/seqgen_2019-02-14_13-13.pth")
 
+# Running sentiment analysis
 full_rep_acc, c, n_not_zero = neuron.fit_sentiment(seq_data, sen_data)
-print('%05.2f Test accuracy' % full_rep_acc)
-print('%05.2f Regularization coef' % c)
+print('%05.3f Test accuracy' % full_rep_acc)
+print('%05.3f Regularization coef' % c)
 print('%05d Features used' % n_not_zero)
 
 # Sampling

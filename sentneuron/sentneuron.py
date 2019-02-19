@@ -190,7 +190,8 @@ class SentimentNeuron(nn.Module):
             model.fit(train_xs, train_ys)
             score = model.score(test_xs, test_ys) * 100.
 
-            n_not_zero = np.sum(model.coef_ != 0)
+            print(model.coef_)
+            n_not_zero = np.sum(model.coef_ != 0.)
             return score, c, n_not_zero
 
     def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
@@ -260,7 +261,8 @@ class SentimentNeuron(nn.Module):
                     pass
 
             h, c = hidden
-            return c[0][0].tolist()
+
+            return torch.tanh(c[0][0]).tolist()
 
     def __truncate_probabilities(self, ps, top_ps=1):
         higher_ps = ps.topk(top_ps)[1]
