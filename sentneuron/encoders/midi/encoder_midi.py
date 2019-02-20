@@ -9,6 +9,8 @@ class EncoderMidi(Encoder):
     def load(self, datapath):
         encoded_midi = []
 
+        vocab = set()
+
         # Read every file in the given directory
         for file in os.listdir(datapath):
             midipath = os.path.join(datapath, file)
@@ -29,7 +31,11 @@ class EncoderMidi(Encoder):
                     continue
 
                 # Translate midi to stream of notes and chords
-                encoded_midi += self.midi_to_note_encoding(midi)
+                midi_content = self.midi_to_note_encoding(midi)
+                midi_name = midipath.split("/")[-1]
+
+                vocab = vocab | set(midi_content)
+                encoded_midi.append((midi, midi_name))
 
         return encoded_midi
 
@@ -50,6 +56,9 @@ class EncoderMidi(Encoder):
 
     def discretize_velocity(self, velocity):
         pass
+
+    def read(self, midi):
+        return self.midi_to_note_encoding(midi)
 
     def write(self, encoded_midi, path):
         # Base class checks if output path exists

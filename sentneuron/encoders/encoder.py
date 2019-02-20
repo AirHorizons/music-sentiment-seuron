@@ -6,18 +6,13 @@ class Encoder(ABC):
 
     def __init__(self, datapath):
         # Load data and save size
-        self.data = self.load(datapath)
-        self.data_size = len(self.data)
+        self.data, self.vocab = self.load(datapath)
 
-        # Create vocabulary from data and save size
-        vocab = list(set(self.data))
-        vocab.sort()
-
-        self.encoding_size = len(vocab)
+        self.encoding_size = len(self.vocab)
 
         # Create dictionaries to support symbol to index conversion and vice-versa
-        self.symbol_to_ix = { symb:i for i,symb in enumerate(vocab) }
-        self.ix_to_symbol = { i:symb for i,symb in enumerate(vocab) }
+        self.symbol_to_ix = { symb:i for i,symb in enumerate(self.vocab) }
+        self.ix_to_symbol = { i:symb for i,symb in enumerate(self.vocab) }
 
     @abstractmethod
     def load(self, datapath):
@@ -28,11 +23,15 @@ class Encoder(ABC):
         pass
 
     @abstractmethod
+    def read(self, file):
+        pass
+
+    @abstractmethod
     def write(self, data, path):
         pass
 
-    def slice(self, i, length):
-        return [self.encode(ts) for ts in self.data[i:i+length]]
+    def slice(self, data, i, length):
+        return [self.encode(ts) for ts in data[i:i+length]]
 
     def encode(self, symb):
         return self.symbol_to_ix[symb]

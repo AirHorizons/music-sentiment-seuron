@@ -2,7 +2,7 @@ import sentneuron as sn
 
 seq_data = sn.encoders.EncoderText("input/generative/txt/shakespeare.txt")
 sen_data = sn.encoders.SentimentData("input/classifier/sst", "sentence", "label", slice=(110,120))
-# data = sg.datasets.midi.NoteData("input/midi/")
+# data = sg.encoders.midi.NoteData("input/generative/midi/")
 
 # Model layer sizes
 input_size  = seq_data.encoding_size

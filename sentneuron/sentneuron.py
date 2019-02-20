@@ -104,57 +104,65 @@ class SentimentNeuron(nn.Module):
         # Loss at epoch 0
         smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
 
-        # Calculate batch size
-        batch_size = seq_dataset.data_size//seq_length
-
         for epoch in range(epochs):
-            h = self.__init_hidden()
+            h_init = self.__init_hidden()
 
-            # Each epoch consists of one entire pass over the dataset
-            for batch_ix in range(batch_size):
-                # Reset optimizer grad
-                optimizer.zero_grad()
+            # Iterate on each data file of the dataset
+            for data_file in seq_dataset.data:
+                f, filename = data_file
 
-                # Slice the dataset to create the current batch
-                batch = seq_dataset.slice(batch_ix * seq_length, seq_length + 1)
+                # Use file pointer to read file content
+                file_content = seq_dataset.read(f)
 
-                # Initialize hidden state with the hidden state from the previous batch
-                h = h_init
+                # Calculate batch size
+                n_batches = len(file_content)//seq_length
 
-                loss = 0
-                for t in range(seq_length):
-                    # Run forward pass and get output y
-                    batch_tensor_x = torch.tensor(batch[t], dtype=torch.long, device=self.device)
-                    h, y = self(batch_tensor_x, h)
+                # Each epoch consists of one entire pass over the dataset
+                for batch_ix in range(n_batches):
+                    # Reset optimizer grad
+                    optimizer.zero_grad()
 
-                    # Calculate loss in respect to the target ts
-                    batch_tensor_t = torch.tensor([batch[t+1]], dtype=torch.long, device=self.device)
-                    loss += loss_function(y, batch_tensor_t)
+                    # Slice the dataset to create the current batch
+                    batch = seq_dataset.slice(file_content, batch_ix * seq_length, seq_length + 1)
 
-                loss.backward()
+                    # Initialize hidden state with the hidden state from the previous batch
+                    h = h_init
 
-                # Copy current hidden state to be next h_init
-                h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
+                    loss = 0
+                    for t in range(seq_length):
+                        # Run forward pass and get output y
+                        batch_tensor_x = torch.tensor(batch[t], dtype=torch.long, device=self.device)
+                        h, y = self(batch_tensor_x, h)
 
-                # Clip gradients
-                self.__clip_gradient(grad_clip)
+                        # Calculate loss in respect to the target ts
+                        batch_tensor_t = torch.tensor([batch[t+1]], dtype=torch.long, device=self.device)
+                        loss += loss_function(y, batch_tensor_t)
 
-                # Run Stochastic Gradient Descent and Update weights
-                optimizer.step()
+                    loss.backward()
 
-                # Calculate average loss and log the results of this batch
-                smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                self.__fit_sequence_log(epoch, (batch_ix, batch_size), smooth_loss, seq_dataset)
+                    # Copy current hidden state to be next h_init
+                    h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
+
+                    # Clip gradients
+                    self.__clip_gradient(grad_clip)
+
+                    # Run Stochastic Gradient Descent and Update weights
+                    optimizer.step()
+
+                    # Calculate average loss and log the results of this batch
+                    smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
+                    self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, file_content)
 
             # Apply learning rate decay before the next epoch
             lr *= lr_decay
 
-    def __fit_sequence_log(self, epoch, batch_ix, loss, seq_dataset, sample_init_range=(0, 20)):
+    def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
-            sample_dat = self.sample(seq_dataset, seq_dataset.data[i_init:i_end], self.LOG_SAMPLE_LEN)
+            sample_dat = self.sample(seq_dataset, data[i_init:i_end], self.LOG_SAMPLE_LEN)
 
             print('epoch:', epoch)
+            print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
