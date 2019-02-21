@@ -37,7 +37,7 @@ class EncoderMidi(Encoder):
                 vocab = vocab | set(midi_content)
                 encoded_midi.append((midi, midi_name))
 
-        return encoded_midi
+        return encoded_midi, vocab
 
     @abstractmethod
     def midi_to_note_encoding(self, midi):
