@@ -1,101 +1,48 @@
+# External imports
 import math    as ma
-import music21 as m21
 import numpy   as np
+import music21 as m21
 
+# Local imports
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiNote(EncoderMidi):
-    def midi_to_note_encoding(self, midi):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=1):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
             return []
 
-        # Parse the midi file into a list of notes (pitch, offset)
-        events = {}
+        # Get piano roll from midi stream
+        piano_roll = self.midi2piano_roll(midi_stream, sample_freq, piano_range, modulate_range)
 
-        # Parse midi events: notes, chords and metronome marks
-        self.midi_parse_notes(midi_stream, events)
-        self.midi_parse_chords(midi_stream, events)
-        self.midi_parse_metronome(midi_stream, events)
-
+        # Transform piano roll into a list of notes in string format
         note_encoding = []
-        for ev in sorted(events.keys()):
-            for note in events[ev]:
-                pitch, duration, velocity = note
-                if pitch >= 0:
-                    note_encoding.append("n" + str(pitch) + "_" + duration)
-                # else:
-                #     note_encoding.append("t" + str(velocity))
-
+        for i in range(len(piano_roll)):
+            for j in range(len(piano_roll[i])):
+                if piano_roll[i,j] == 1:
+                    note_encoding.append("n" + str(j))
             note_encoding.append(".")
 
-        self.write(note_encoding, "encoded")
+        self.write(note_encoding, "note_encoding")
 
         return note_encoding
 
-    def midi_parse_notes(self, midi_stream, events):
-        note_filter = m21.stream.filters.ClassFilter('Note')
-
-        for note in midi_stream.recurse().addFilter(note_filter):
-            offset = float(note.offset)
-            if offset not in events:
-                events[offset] = []
-
-            events[offset].append((note.pitch.midi, note.duration.type, int(note.volume.velocity)))
-
-    def midi_parse_chords(self, midi_stream, events):
-        chord_filter = m21.stream.filters.ClassFilter('Chord')
-
-        for chord in midi_stream.recurse().addFilter(chord_filter):
-            pitches_in_chord = chord.pitches
-            for pitch in pitches_in_chord:
-                offset = float(chord.offset)
-                if offset not in events:
-                    events[offset] = []
-
-                events[offset].append((pitch.midi, chord.duration.type, int(chord.volume.velocity)))
-
-    def midi_parse_metronome(self, midi_stream, events):
-        metronome_filter = m21.stream.filters.ClassFilter('MetronomeMark')
-
-        for metro in midi_stream.recurse().addFilter(metronome_filter):
-            offset = float(metro.offset)
-            if offset not in events:
-                events[offset] = []
-
-            events[offset].append((-1, None, int(metro.number)))
-
-
-    def note_encoding_to_midi(self, note_encoding, sample_freq=4):
-        # Set the volume of the notes to 100
+    def encoding2midi(self, note_encoding, sample_freq=4, duration=2):
+        speed = 1./sample_freq
         notes = []
 
-        time_signature = m21.meter.TimeSignature("4/4")
-
         ts = 0
-
         for note in note_encoding:
             if note == ".":
                 ts += 1
 
-            elif note[0] == "t":
-                metro = m21.tempo.MetronomeMark(number=int(note[1:]))
-                metro.offset = ts * 0.5
-                notes.append(metro)
-
             elif note[0] == "n":
                 pitch = int(note.split("_")[0][1:])
-                duration = note.split("_")[1]
-                # velocity = int(note.split("_")[2])
-
-                if duration == "complex":
-                    continue
 
                 note = m21.note.Note(pitch)
-                note.duration = m21.duration.Duration(type=duration)
-                note.offset = ts * .5
-                note.volume.velocity = 100
+                note.duration = m21.duration.Duration(duration * speed)
+                note.offset = ts * duration * speed
                 notes.append(note)
 
         piano = m21.instrument.fromString("Piano")
