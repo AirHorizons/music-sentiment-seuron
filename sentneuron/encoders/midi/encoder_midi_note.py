@@ -24,7 +24,7 @@ class EncoderMidiNote(EncoderMidi):
                     note_encoding.append("n" + str(j))
             note_encoding.append(".")
 
-        self.write(note_encoding, "note_encoding")
+        self.write(note_encoding, "note_test")
 
         return note_encoding
 

@@ -7,7 +7,7 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiChord(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq = 4, piano_range = 88, modulate_range=1):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=1):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
@@ -17,9 +17,7 @@ class EncoderMidiChord(EncoderMidi):
         piano_roll = self.midi2piano_roll(midi_stream, sample_freq, piano_range, modulate_range)
 
         # Transform piano roll into a list of chords in string format
-        chord_encoding = [self.__ts2str(ts) for ts in piano_roll]
-
-        self.write(chord_encoding, "chord_encoding")
+        chord_encoding = [self.ts2str(ts) for ts in piano_roll]
 
         return chord_encoding
 

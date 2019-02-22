@@ -1,7 +1,7 @@
 import sentneuron as sn
 
 # seq_data = sn.encoders.EncoderText("input/generative/txt/")
-seq_data = sn.encoders.midi.EncoderMidiNote("input/generative/midi/beethoven_mond/")
+seq_data = sn.encoders.midi.EncoderMidiPerform("input/generative/midi/beethoven_mond/")
 
 # Model layer sizes
 input_size  = seq_data.encoding_size
