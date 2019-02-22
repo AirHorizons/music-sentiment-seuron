@@ -24,7 +24,8 @@ class EncoderMidiPerform(EncoderMidi):
                 velocity = piano_roll[i,j][1]
 
                 if duration != 0 and velocity != 0:
-                    note_encoding.append("n_" + str(j) + "_" + str(duration) + "_" + str(int(velocity)))
+                    duration, _ = m21.duration.quarterLengthToClosestType(duration)
+                    note_encoding.append("n_" + str(j) + "_" + duration + "_" + str(int(velocity)))
 
             # Time events are stored at the last row
             tempo_change = piano_roll[i,-1][0]
@@ -46,12 +47,12 @@ class EncoderMidiPerform(EncoderMidi):
                 ts += 1
 
             elif note[0] == "n":
-                pitch    =   int(note.split("_")[1])
-                duration = float(note.split("_")[2])
-                velocity =   int(note.split("_")[3])
+                pitch    = int(note.split("_")[1])
+                velocity = int(note.split("_")[3])
+                duration =     note.split("_")[2]
 
                 note = m21.note.Note(pitch)
-                note.duration = m21.duration.Duration(duration)
+                note.duration = m21.duration.Duration(type=duration)
                 note.offset = ts * ts_duration
                 note.volume.velocity = velocity
                 notes.append(note)
