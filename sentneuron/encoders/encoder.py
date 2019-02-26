@@ -1,12 +1,25 @@
-import os    as os
+import json
 import numpy as np
+
 from abc import ABC, abstractmethod
 
 class Encoder(ABC):
+    def __init__(self, datapath, pre_loaded=False):
+        if not pre_loaded:
+            # Load data and vocabulary from files
+            self.data, self.vocab = self.load(datapath)
+            self.vocab = list(self.vocab)
+            self.vocab.sort()
+        else:
+            # Load vocabulary
+            with open(datapath, 'r') as fp:
+                self.vocab = fp.read().split(" ")
+                self.vocab = list(self.vocab)
+                self.vocab.sort()
+                fp.close()
 
-    def __init__(self, datapath):
-        # Load data and save size
-        self.data, self.vocab = self.load(datapath)
+            # Remove empty element "" from the first position
+            self.vocab = self.vocab[1:]
 
         self.encoding_size = len(self.vocab)
 

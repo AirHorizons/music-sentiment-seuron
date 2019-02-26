@@ -12,12 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from .models import mLSTM
 
 class SentimentNeuron(nn.Module):
-
-    # Training Log constants
-    LOG_PATH = "output/generative/"
-    LOG_SAMPLE_LEN   = 200
-    LOG_SAVE_SAMPLES = True
-
     def __init__(self, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0):
         super(SentimentNeuron, self).__init__()
 
@@ -91,9 +85,6 @@ class SentimentNeuron(nn.Module):
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
-        # Save trained model for sampling
-        self.save()
-
     def __fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, lr_decay=0.7, grad_clip=5):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
@@ -159,16 +150,13 @@ class SentimentNeuron(nn.Module):
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
-            sample_dat = self.sample(seq_dataset, data[i_init:i_end], self.LOG_SAMPLE_LEN)
+            sample_dat = self.sample(seq_dataset, data[i_init:i_end], sample_len=200)
 
             print('epoch:', epoch)
             print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
-
-            if self.LOG_SAVE_SAMPLES:
-                seq_dataset.write(sample_dat, self.LOG_PATH + "/samples/sample_dat_" + str(epoch))
 
     def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
@@ -205,7 +193,12 @@ class SentimentNeuron(nn.Module):
     def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
         with torch.no_grad():
             # Retrieve a random example from the dataset as the first element of the sequence
-            xs = [seq_dataset.encode(symb) for symb in sample_init]
+            xs = []
+            for symb in sample_init:
+                try:
+                    xs.append(seq_dataset.encode(symb))
+                except KeyError:
+                    print("Symbol " + symb + " can't be encoded.")
 
             # Initialize the sequence
             seq = []
@@ -237,14 +230,20 @@ class SentimentNeuron(nn.Module):
         self.load_state_dict(model)
         self.eval()
 
-    def save(self):
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
-        model_filename = self.LOG_PATH + "/models/seqgen_" + timestamp + ".pth"
-
-        print("Saving model:", model_filename)
+    def save(self, seq_dataset, path=""):
 
         # Persist model on disk with current timestamp
+        model_filename = path + "_model.pth"
         torch.save(self.state_dict(), model_filename)
+
+        # Persist encoding vocab on disk
+        vocab_filename = path + "_vocab.txt"
+        with open(vocab_filename, 'w') as fp:
+            for symb in seq_dataset.vocab:
+                fp.write(symb + " ")
+            fp.close()
+
+        print("Saved model:", model_filename)
 
     def __init_hidden(self, batch_size=1):
         h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
