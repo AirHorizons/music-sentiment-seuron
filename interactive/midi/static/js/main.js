@@ -1,18 +1,22 @@
+// Keys constants
 var KEY_WIDTH  = 30;
 var KEY_HEIGHT = 100;
 
-var PIANO_X = 0;
-var PIANO_Y = KEY_HEIGHT + 22;
+// Keyboard constants
+var KEYBOARD_X            = 0;
+var KEYBOARD_Y            = KEY_HEIGHT + 22;
+var KEYBOARD_OCTAVES      = 6;
+var KEYBOARD_FIRST_OCTAVE = 2;
 
-var OCTAVES      = 6;
-var FIRST_OCTAVE = 2;
+// Simulation constants
+var SEQUENCE_SEED_TIME = 5;
 
 function setup() {
     // Create canvas
     createCanvas(windowWidth - 20, windowHeight - 20);
 
     // Create keyboard
-    keyboard = new Keyboard(PIANO_X, windowHeight - PIANO_Y, KEY_WIDTH, KEY_HEIGHT, OCTAVES, FIRST_OCTAVE)
+    keyboard = new Keyboard(KEYBOARD_X, windowHeight - KEYBOARD_Y, KEY_WIDTH, KEY_HEIGHT, KEYBOARD_OCTAVES, KEYBOARD_FIRST_OCTAVE)
 
     // Create sampler with salamder samples
     sampler = new Tone.Sampler({
@@ -48,10 +52,13 @@ function setup() {
         "C8" : "C8.[mp3|ogg]"
     }, {
         "release" : 1,
-        "baseUrl" : "./audio/salamander/"
+        "baseUrl" : "./static/audio/salamander/"
     }).toMaster();
 
+    keysPressed = [];
+
     keyboard.keyDown = function(pitch) {
+        keysPressed.push(pitch);
         note = Tone.Frequency(pitch, "midi").toNote();
         sampler.triggerAttack(note);
     }
@@ -60,11 +67,26 @@ function setup() {
         note = Tone.Frequency(pitch, "midi").toNote();
         sampler.triggerRelease(note);
     }
+
+    last = millis()
+}
+
+function update() {
+    now = millis();
+
+    if((now - last)/1000 > SEQUENCE_SEED_TIME) {
+        sendNoteSequence(keysPressed.toString());
+
+        keysPressed = [];
+        last = millis();
+    }
 }
 
 function draw() {
+    update();
+
     keyboard.update();
-    keyboard.draw()
+    keyboard.draw();
 }
 
 function mousePressed() {
