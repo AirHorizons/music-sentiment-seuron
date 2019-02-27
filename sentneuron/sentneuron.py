@@ -231,7 +231,6 @@ class SentimentNeuron(nn.Module):
         self.eval()
 
     def save(self, seq_dataset, path=""):
-
         # Persist model on disk with current timestamp
         model_filename = path + "_model.pth"
         torch.save(self.state_dict(), model_filename)
@@ -270,15 +269,3 @@ class SentimentNeuron(nn.Module):
             h, c = hidden
 
             return torch.tanh(c[0][0]).tolist()
-
-    def __truncate_probabilities(self, ps, top_ps=1):
-        higher_ps = ps.topk(top_ps)[1]
-
-        for i in set(range(len(ps))) - set(higher_ps):
-            ps[i] = 0.
-
-        sum_ps = min(1., sum(ps))
-        for i in higher_ps:
-            ps[i] += (1. - sum_ps)/len(higher_ps)
-
-        return ps
