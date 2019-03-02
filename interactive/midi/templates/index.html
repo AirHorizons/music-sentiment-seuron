@@ -4,19 +4,23 @@
 	<title>Sentiment Neuron Interactive Sampling</title>
 
     <!-- Load external libraries -->
-    <script src="{{ url_for('static', filename='js/lib/p5.min.js'  ) }}"></script>
-    <script src="{{ url_for('static', filename='js/lib/tone.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/p5.min.js'      ) }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/p5.dom.min.js'  ) }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/tone.min.js'    ) }}"></script>
 
     <!-- Load local scripts -->
     <script src="{{ url_for('static', filename='js/keyboard.js'  ) }}"></script>
     <script src="{{ url_for('static', filename='js/connection.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js'      ) }}"></script>
 
+    <!-- Load style -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/midi.css') }}">
+
     <script type=text/javascript>
         $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     </script>
 </head>
 <body>
-
 </body>
 </html>

@@ -1,23 +1,104 @@
 // Keys constants
-var KEY_WIDTH  = 30;
+var KEY_WIDTH  = 25;
 var KEY_HEIGHT = 100;
 
 // Keyboard constants
-var KEYBOARD_X            = 0;
-var KEYBOARD_Y            = KEY_HEIGHT + 22;
-var KEYBOARD_OCTAVES      = 6;
-var KEYBOARD_FIRST_OCTAVE = 2;
+var KEYBOARD_OCTAVES      = 7;
+var KEYBOARD_FIRST_OCTAVE = 1;
 
 // Simulation constants
-var SEQUENCE_SEED_TIME = 5;
+var MAX_VELOCITY = 128;
+
+// ----------------------------------------
+// SETUP FUNCTIONS
+// ----------------------------------------
 
 function setup() {
     // Create canvas
-    createCanvas(windowWidth - 20, windowHeight - 20);
+    canvas = createCanvas(windowWidth - 20, windowHeight - 20);
 
+    setupKeyboard();
+    setupSampler();
+    setupMenu();
+
+    isMousePressed = false;
+    isMainStarted  = false;
+    isAIPlaying    = false;
+
+    genSequenceLen = 50;
+
+    playingTimer    = 0;
+    aiPlayingTimer  = 0;
+    lastMeasureTime = 0;
+    generationTime  = 2;
+
+    baseTimeDiv = 16;
+
+    keysPlayed = [];
+    keysPlayedInTimeDiv = {};
+}
+
+function setupMenu() {
+    keyboard.draw();
+    background(20, 20, 20, 220);
+
+    button = createButton('PLAY');
+    button.position(width/2 - 100, height/2 - 50, 200, 100);
+    button.mousePressed(function() {
+        // Remove any HTML elements
+        removeElements();
+
+        // Change background color
+        background(20, 20, 20, 255);
+
+        // Start MAIN app
+        isMainStarted = true;
+
+        // Make ure tone.js is running
+        if (Tone.context.state !== 'running') {
+            Tone.context.resume();
+        }
+
+        // Start the tone.js scheduler
+        Tone.Transport.bpm.value = 120;
+        startPlayerPart();
+    });
+    button.id("play-button");
+}
+
+function setupKeyboard() {
     // Create keyboard
-    keyboard = new Keyboard(KEYBOARD_X, windowHeight - KEYBOARD_Y, KEY_WIDTH, KEY_HEIGHT, KEYBOARD_OCTAVES, KEYBOARD_FIRST_OCTAVE)
+    var kX = width/2 - (KEYBOARD_OCTAVES * KEY_WIDTH * N_WHITE_KEY)/2;
+    var kY = height - KEY_HEIGHT;
+    keyboard = new Keyboard(kX, kY, KEY_WIDTH, KEY_HEIGHT, KEYBOARD_OCTAVES, KEYBOARD_FIRST_OCTAVE);
 
+    keyboard.keyDown = function(pitch, velocity) {
+        playingTimer = 0;
+
+        note = Tone.Frequency(pitch, "midi").toNote();
+        sampler.triggerAttack(note, Tone.Transport.now(), velocity);
+
+        if(!isAIPlaying) {
+            keysPlayedInTimeDiv[pitch] = {};
+            keysPlayedInTimeDiv[pitch].start = Tone.Transport.seconds;
+        }
+    }
+
+    keyboard.keyUp = function(pitch, duration) {
+        playingTimer = 0;
+
+        note = Tone.Frequency(pitch, "midi").toNote();
+        sampler.triggerRelease(note);
+
+        if(!isAIPlaying) {
+            if (pitch in keysPlayedInTimeDiv) {
+                keysPlayedInTimeDiv[pitch].end = Tone.Transport.seconds;
+            }
+        }
+    }
+}
+
+function setupSampler() {
     // Create sampler with salamder samples
     sampler = new Tone.Sampler({
         "A0" : "A0.[mp3|ogg]",
@@ -54,178 +135,218 @@ function setup() {
         "release" : 1,
         "baseUrl" : "./static/audio/salamander/"
     }).toMaster();
-
-    keysPressed = [];
-
-    keyboard.keyDown = function(pitch) {
-        keysPressed.push(pitch);
-        note = Tone.Frequency(pitch, "midi").toNote();
-        sampler.triggerAttack(note);
-    }
-
-    keyboard.keyUp = function(pitch) {
-        note = Tone.Frequency(pitch, "midi").toNote();
-        sampler.triggerRelease(note);
-    }
-
-    last = millis()
 }
 
-function update() {
-    now = millis();
+function startPlayerPart() {
+    keysPlayed = [];
+    keysPlayedInTimeDiv = {};
 
-    if((now - last)/1000 > SEQUENCE_SEED_TIME) {
-        sendNoteSequence(keysPressed.toString());
+    playingTimer = 0;
 
-        keysPressed = [];
-        last = millis();
-    }
+    // Change background color
+    background(20, 20, 20, 255);
+
+    Tone.Transport.cancel();
+    Tone.Transport.start();
+
+    Tone.Transport.scheduleRepeat(function(time) {
+        console.log("HUMAN PLAY!");
+        var measure = schedularCallback(time);
+
+        var n_rests = 0;
+        for(var i = 0; i < measure.length; i++) {
+            if(measure[i] == ".") {
+                n_rests++;
+            }
+        }
+
+        if(n_rests < measure.length) {
+            keysPlayed = keysPlayed.concat(measure);
+        }
+
+        keysPlayedInTimeDiv = {};
+        lastMeasureTime = time;
+    }, "1m");
 }
+
+function startAIPart(part) {
+    var evIx = 0;
+    Tone.Transport.cancel();
+    Tone.Transport.start();
+
+    Tone.Transport.scheduleRepeat(function(time) {
+        if(!isAIPlaying)
+            return;
+
+        if(evIx < part.length) {
+            if(part[evIx][0] == ".") {
+                evIx++;
+            }
+            else if(part[evIx][0] == "n" || part[evIx][0] == "t") {
+                while(evIx < part.length && part[evIx][0] != ".") {
+                    var ev = part[evIx].split("_");
+
+                    if(part[evIx][0] == "n") {
+                        var pitch    = parseInt(ev[1]);
+                        var duration = ev[2] + "n";
+                        var velocity = parseInt(ev[3])/MAX_VELOCITY;
+
+                        console.log("PLAY NOTE: " + part[evIx]);
+                        keyboard.playKeyWithPitch(pitch, Tone.Time(duration).toSeconds(), velocity);
+                    }
+                    else {
+                        var tempo = parseInt(ev[1]);
+                        if(tempo >= 20) {
+                            Tone.Transport.bpm.value = tempo;
+                        }
+                    }
+
+                    evIx++;
+                }
+            }
+        }
+        else {
+            console.log("AI STOP!");
+            isAIPlaying = false;
+
+            Tone.Transport.cancel();
+            Tone.Transport.stop();
+
+            startPlayerPart();
+        }
+    }, baseTimeDiv.toString() + "n");
+}
+
+// ----------------------------------------
+// DRAWING FUNCTIONS
+// ----------------------------------------
 
 function draw() {
-    update();
+    if(isMainStarted) {
+        var dt = (window.performance.now() - canvas._pInst._lastFrameTime)/1000;
 
-    keyboard.update();
-    keyboard.draw();
+        update(dt);
+
+        keyboard.update(dt, isMousePressed);
+        keyboard.draw();
+    }
 }
 
+// ----------------------------------------
+// UPDATE FUNCTIONS
+// ----------------------------------------
+
+function update(dt) {
+    playingTimer += dt;
+    if(playingTimer > generationTime) {
+        if(keysPlayed.length > 0 && !isAIPlaying) {
+            console.log("AI PLAY!");
+            console.log(keysPlayed);
+
+            isAIPlaying = true;
+            aiPlayingTimer = 0;
+
+            Tone.Transport.cancel();
+            Tone.Transport.stop();
+
+            sendNoteSequence(keysPlayed.toString(), genSequenceLen, generationCallback);
+
+            keysPlayed = [];
+            keysPlayedInTimeDiv = {};
+        }
+
+        playingTimer = 0;
+    }
+
+    if(isAIPlaying) {
+        // Animate background
+        var from = color(20, 20, 20, 255);
+        var to   = color(80, 80, 80, 255);
+
+        aiPlayingTimer += dt * 5;
+        var final = lerpColor(from, to, sin(aiPlayingTimer));
+
+        background(final);
+    }
+}
+
+// ----------------------------------------
+// CALLBACK FUNCTIONS
+// ----------------------------------------
+
+function generationCallback(generatedSequence) {
+    var part = generatedSequence.split(" ");
+    startAIPart(part);
+}
+
+function schedularCallback(time) {
+    // Create empty measure
+    var measure = [];
+    for (var i = 0; i < baseTimeDiv; i++) {
+        measure[i] = ".";
+    }
+
+    for(var key in keysPlayedInTimeDiv) {
+      if (keysPlayedInTimeDiv.hasOwnProperty(key)) {
+        var note = keysPlayedInTimeDiv[key];
+        var pitch  = key;
+
+        // Calculate note offset in seconds
+        var offset = Math.max(0, (note.start - lastMeasureTime));
+        offset = offset / Tone.Time("1m").toSeconds();
+
+        // Calculate duration
+        var end = time;
+        if ("end" in note) {
+            end = note.end;
+        }
+
+        var duration = Math.round((end - note.start) * 100)/100;
+        duration = Tone.Time(duration).toNotation()[0];
+
+        // Calculate position in the measure
+        var beat = Math.floor(offset * measure.length);
+        if(measure[beat] == ".") {
+            measure[beat] = "n_" + pitch.toString() + "_" + duration + "_80";
+        }
+        else {
+            measure[beat] += " n_" + pitch.toString() + "_" + duration + "_80";
+        }
+      }
+    }
+
+    return measure;
+}
+
+// ----------------------------------------
+// IO FUNCTIONS
+// ----------------------------------------
+
 function mousePressed() {
-    if(keyboard.isMouseOver()) {
-        keyboard.didMouseClick = true;
+    if(!isAIPlaying) {
+        isMousePressed = true;
     }
 }
 
 function mouseReleased() {
-    keyboard.didMouseClick = false;
-
-    keyboard.releaseAllKeys();
-    sampler.releaseAll();
+    if(!isAIPlaying) {
+        isMousePressed = false;
+    }
 }
 
 function keyPressed() {
-    switch (keyCode) {
-        case 65: // A
-            keyboard.octaves[2].whiteKeys[0].isKeyPressed = true;
-            break;
-        case 87: // W
-            keyboard.octaves[2].blackKeys[0].isKeyPressed = true;
-            break;
-        case 83: // S
-            keyboard.octaves[2].whiteKeys[1].isKeyPressed = true;
-            break;
-        case 69: // E
-            keyboard.octaves[2].blackKeys[1].isKeyPressed = true;
-            break;
-        case 68: // D
-            keyboard.octaves[2].whiteKeys[2].isKeyPressed = true;
-            break;
-        case 70: // F
-            keyboard.octaves[2].whiteKeys[3].isKeyPressed = true;
-            break;
-        case 84: // T
-            keyboard.octaves[2].blackKeys[2].isKeyPressed = true;
-            break;
-        case 71: // G
-            keyboard.octaves[2].whiteKeys[4].isKeyPressed = true;
-            break;
-        case 89: // Y
-            keyboard.octaves[2].blackKeys[3].isKeyPressed = true;
-            break;
-        case 72: // H
-            keyboard.octaves[2].whiteKeys[5].isKeyPressed = true;
-            break;
-        case 85: // U
-            keyboard.octaves[2].blackKeys[4].isKeyPressed = true;
-            break;
-        case 74: // J
-            keyboard.octaves[2].whiteKeys[6].isKeyPressed = true;
-            break;
-        case 75: // k
-            keyboard.octaves[3].whiteKeys[0].isKeyPressed = true;
-            break;
-        case 79: // O
-            keyboard.octaves[3].blackKeys[0].isKeyPressed = true;
-            break;
-        case 76: // L
-            keyboard.octaves[3].whiteKeys[1].isKeyPressed = true;
-            break;
-        case 80: // P
-            keyboard.octaves[3].blackKeys[1].isKeyPressed = true;
-            break;
-        case 186: // ;
-            keyboard.octaves[3].whiteKeys[2].isKeyPressed = true;
-            break;
-        case 222: // ;
-            keyboard.octaves[3].whiteKeys[3].isKeyPressed = true;
-            break;
-        case 221: // ;
-            keyboard.octaves[3].blackKeys[2].isKeyPressed = true;
-            break;
-        default:
-            break;
+    if(!isAIPlaying) {
+        keyboard.keyPressed(keyCode);
     }
 }
 
 function keyReleased() {
-    switch (keyCode) {
-        case 65: // A
-            keyboard.octaves[2].whiteKeys[0].isKeyPressed = false;
-            break;
-        case 87: // W
-            keyboard.octaves[2].blackKeys[0].isKeyPressed = false;
-            break;
-        case 83: // S
-            keyboard.octaves[2].whiteKeys[1].isKeyPressed = false;
-            break;
-        case 69: // E
-            keyboard.octaves[2].blackKeys[1].isKeyPressed = false;
-            break;
-        case 68: // D
-            keyboard.octaves[2].whiteKeys[2].isKeyPressed = false;
-            break;
-        case 70: // F
-            keyboard.octaves[2].whiteKeys[3].isKeyPressed = false;
-            break;
-        case 84: // T
-            keyboard.octaves[2].blackKeys[2].isKeyPressed = false;
-            break;
-        case 71: // G
-            keyboard.octaves[2].whiteKeys[4].isKeyPressed = false;
-            break;
-        case 89: // Y
-            keyboard.octaves[2].blackKeys[3].isKeyPressed = false;
-            break;
-        case 72: // H
-            keyboard.octaves[2].whiteKeys[5].isKeyPressed = false;
-            break;
-        case 85: // U
-            keyboard.octaves[2].blackKeys[4].isKeyPressed = false;
-            break;
-        case 74: // J
-            keyboard.octaves[2].whiteKeys[6].isKeyPressed = false;
-            break;
-        case 75: // k
-            keyboard.octaves[3].whiteKeys[0].isKeyPressed = false;
-            break;
-        case 79: // O
-            keyboard.octaves[3].blackKeys[0].isKeyPressed = false;
-            break;
-        case 76: // L
-            keyboard.octaves[3].whiteKeys[1].isKeyPressed = false;
-            break;
-        case 80: // P
-            keyboard.octaves[3].blackKeys[1].isKeyPressed = false;
-            break;
-        case 186: // ;
-            keyboard.octaves[3].whiteKeys[2].isKeyPressed = false;
-            break;
-        case 222: // ;
-            keyboard.octaves[3].whiteKeys[3].isKeyPressed = false;
-            break;
-        case 221: // ;
-            keyboard.octaves[3].blackKeys[2].isKeyPressed = false;
-            break;
-        default:
-            break;
+    if(!isAIPlaying) {
+        keyboard.keyReleased(keyCode);
     }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth - 20, windowHeight - 20);
+  button.position(width/2 - 100, height/2 - 50, 200, 100);
 }

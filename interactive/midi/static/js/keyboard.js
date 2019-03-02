@@ -2,12 +2,12 @@ var N_WHITE_KEY = 7;
 var N_BLACK_KEY = 6;
 var KEYS_PER_OCTAVE = (N_WHITE_KEY + N_BLACK_KEY - 2);
 
-var STROKE_WEIGHT         = 2;
-var RELEASED_STROKE_COLOR = 180;
-var SELECTED_FILL_COLOR   = 230;
-var SELECTED_STROKE_COLOR = 180;
-var PLAYING_FILL_COLOR    = 100;
-var PLAYING_STROKE_COLOR  = 180;
+var MIDI_MAX_PITCH = 128;
+
+var KeyColor= {
+  WHITE: 0,
+  BLACK: 1,
+};
 
 var KeyState = {
   RELEASED: 0,
@@ -16,16 +16,26 @@ var KeyState = {
 };
 
 class Key {
-    constructor(x, y, w, h, pitch, keyboard) {
+    constructor(x, y, w, h, pitch, color) {
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
-        this.pitch = pitch;
-        this.state = KeyState.RELEASED;
-        this.isKeyPressed = false;
 
-        this.keyboard = keyboard;
+        this.pitch = pitch;
+        this.velocity = 1;
+
+        this.pressed = false;
+
+        this.pressedTimer = 0;
+        this.releaseTimer = 0;
+
+        this.color = color;
+        this.state = KeyState.RELEASED;
+    }
+
+    isKeyPressed() {
+        return this.pressed;
     }
 
     isMouseOver() {
@@ -43,50 +53,74 @@ class Key {
 
     play() {
         if(this.state != KeyState.PLAYING) {
-            this.keyboard.keyDown(this.pitch);
+            this.keyboard.keyDown(this.pitch, this.velocity);
             this.state = KeyState.PLAYING;
         }
     }
 
     release() {
-        this.keyboard.keyUp(this.pitch);
+        if(this.state == KeyState.PLAYING)
+            this.keyboard.keyUp(this.pitch, this.pressedTimer);
         this.state = KeyState.RELEASED;
+
+        this.pressedTimer = 0;
+        this.velocity = 1;
     }
 
     select() {
+        if(this.state == KeyState.PLAYING)
+            this.keyboard.keyUp(this.pitch, this.pressedTimer);
+
         this.state = KeyState.SELECTED;
+
+        this.pressedTimer = 0;
     }
 
-    update() {
-        if(this.isMouseOver() || this.isKeyPressed) {
-            if(this.keyboard.didMouseClick || this.isKeyPressed) {
-                this.play();
-            }
-            else {
-                this.select();
+    update(dt, isMousePressed) {
+        if(this.isMouseOver()) {
+            isMousePressed ? this.play() : this.select();
+        }
+
+        if(this.isKeyPressed()) {
+            this.play();
+
+            if(this.releaseTimer > 0) {
+                this.releaseTimer -= dt;
+
+                if(this.releaseTimer <= 0) {
+                    this.release();
+
+                    this.pressed = false;
+                    this.releaseTimer = 0;
+                }
             }
         }
-        else {
+
+        if(!this.isMouseOver() && !this.isKeyPressed()) {
             this.release();
+        }
+
+        if(this.state == KeyState.PLAYING) {
+            this.pressedTimer += dt;
         }
     }
 
     draw(releaseFillColor) {
-        strokeWeight(STROKE_WEIGHT);
+        strokeWeight(2);
 
         // Set fill and stroke colors
         switch (this.state) {
             case KeyState.RELEASED:
-                fill(releaseFillColor);
-                stroke(RELEASED_STROKE_COLOR);
+                this.color == KeyColor.WHITE ? fill(50,50,50) : fill(10,10,10);
+                stroke(220);
                 break;
             case KeyState.SELECTED:
-                fill(SELECTED_FILL_COLOR);
-                stroke(SELECTED_STROKE_COLOR);
+                fill(150,150,150);
+                stroke(220);
                 break;
             case KeyState.PLAYING:
-                fill(PLAYING_FILL_COLOR);
-                stroke(PLAYING_STROKE_COLOR);
+                this.color == KeyColor.WHITE ?  fill(255,163,0,30) : fill(255,163,0);
+                this.color == KeyColor.WHITE ? stroke(20,20,20,30) : stroke(220);
                 break;
         }
 
@@ -107,6 +141,7 @@ class Octave {
         this.blackKeys = []
 
         this.keyboard = keyboard;
+        this.keySelected = null;
 
         this.constructKeys(keyWidth, keyHeight);
     }
@@ -117,7 +152,7 @@ class Octave {
         for (var i = 0; i < N_WHITE_KEY; i++) {
 
             // Create white key
-            var whiteKey = new Key(this.x + (keyWidth * i), this.y, keyWidth, keyHeight, whitePitch);
+            var whiteKey = new Key(this.x + (keyWidth * i), this.y, keyWidth, keyHeight, whitePitch, KeyColor.WHITE);
             whiteKey.keyboard = this.keyboard;
             this.whiteKeys.push(whiteKey)
 
@@ -131,7 +166,7 @@ class Octave {
 
             // Skip the third black key
             if (i != 2) {
-                var blackKey = new Key(this.x + keyWidth * (i+0.7), this.y, keyWidth/1.5, keyHeight/2, blackPitch);
+                var blackKey = new Key(this.x + keyWidth * (i+0.7), this.y, keyWidth/1.5, keyHeight/2, blackPitch, KeyColor.BLACK);
                 blackKey.keyboard = this.keyboard;
                 this.blackKeys.push(blackKey)
             }
@@ -141,13 +176,13 @@ class Octave {
         }
     }
 
-    update() {
-        for (var i in this.whiteKeys) {
-            this.whiteKeys[i].update();
+    update(dt, isMousePressed) {
+        for (var i in this.blackKeys) {
+            this.blackKeys[i].update(dt, isMousePressed);
         }
 
-        for (var i in this.blackKeys) {
-            this.blackKeys[i].update();
+        for (var i in this.whiteKeys) {
+            this.whiteKeys[i].update(dt, isMousePressed);
         }
     }
 
@@ -161,29 +196,45 @@ class Octave {
         }
     }
 
-    releaseAllKeys() {
-        for (var i in this.whiteKeys) {
-            this.whiteKeys[i].state = KeyState.RELEASED;
-        }
+    playKeyWithIndex(i, duration, velocity) {
+        // Check if index is a white key
+        if(i == 0 || i == 2 || i == 4 || i == 5 || i == 7 || i == 9 || i == 11) {
+            var keyIx = i;
+            if(i < 5) {
+                keyIx = i - Math.ceil(i/2);
+            }
+            else {
+                keyIx = i - Math.floor(i/2);
+            }
 
-        for (var i in this.blackKeys) {
-            this.blackKeys[i].state = KeyState.RELEASED;
+            this.whiteKeys[keyIx].velocity = velocity;
+            this.whiteKeys[keyIx].releaseTimer = duration;
+            this.whiteKeys[keyIx].pressed = true;
+        }
+        else {
+            // 1, 3, 6, 8, 10
+            var keyIx = i;
+            if(i < 6) {
+                keyIx -= Math.ceil(i/2);
+            }
+            else {
+                keyIx -= Math.ceil((i+1)/2);
+            }
+
+            this.blackKeys[keyIx].velocity = velocity;
+            this.blackKeys[keyIx].releaseTimer = duration;
+            this.blackKeys[keyIx].pressed = true;
         }
     }
 
-    keysInState(state) {
-        var keysInState = 0;
+    releaseAllKeys() {
         for (var i in this.whiteKeys) {
-            if(this.whiteKeys[i].state == state)
-                keysInState++;
+            this.whiteKeys[i].release();
         }
 
         for (var i in this.blackKeys) {
-            if(this.blackKeys[i].state == state)
-                keysInState++;
+            this.blackKeys[i].release();
         }
-
-        return keysInState;
     }
 }
 
@@ -195,8 +246,7 @@ class Keyboard {
         this.h = keyHeight;
         this.firstOctave = firstOctave;
 
-        this.didMouseClick = false;
-
+        // Create octaves
         this.octaves = []
         for(var i = 0; i < octaves; i++) {
             var octave = new Octave(this, i, keyWidth, keyHeight);
@@ -204,17 +254,26 @@ class Keyboard {
         }
     }
 
-    isMouseOver() {
-        var minX = this.x
-        var maxX = this.x + this.w
-        var minY = this.y
-        var maxY = this.y + this.h
+    update(dt, isMousePressed) {
+        for (var i in this.octaves)
+            this.octaves[i].update(dt, isMousePressed);
+    }
 
-        if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
+    draw() {
+        for (var i in this.octaves)
+            this.octaves[i].draw();
+    }
+
+    playKeyWithPitch(pitch, duration, velocity) {
+        var keyIx = pitch % 12;
+        var octIx = Math.floor(pitch/12);
+
+        if (octIx < this.octaves.length) {
+            this.octaves[octIx].playKeyWithIndex(keyIx, duration, velocity);
             return true;
-         }
+        }
 
-         return false;
+        return false;
     }
 
     releaseAllKeys() {
@@ -222,20 +281,131 @@ class Keyboard {
             this.octaves[i].releaseAllKeys();
     }
 
-    keysInState(state) {
-        var keysInState = 0;
-        for (var i in this.octaves)
-            keysInState += this.octaves[i].keysInState(state);
-        return keysInState;
+    keyPressed(keyCode) {
+        switch (keyCode) {
+            case 65: // A
+                this.octaves[2].whiteKeys[0].pressed = true;
+                break;
+            case 87: // W
+                this.octaves[2].blackKeys[0].pressed = true;
+                break;
+            case 83: // S
+                this.octaves[2].whiteKeys[1].pressed = true;
+                break;
+            case 69: // E
+                this.octaves[2].blackKeys[1].pressed = true;
+                break;
+            case 68: // D
+                this.octaves[2].whiteKeys[2].pressed = true;
+                break;
+            case 70: // F
+                this.octaves[2].whiteKeys[3].pressed = true;
+                break;
+            case 84: // T
+                this.octaves[2].blackKeys[2].pressed = true;
+                break;
+            case 71: // G
+                this.octaves[2].whiteKeys[4].pressed = true;
+                break;
+            case 89: // Y
+                this.octaves[2].blackKeys[3].pressed = true;
+                break;
+            case 72: // H
+                this.octaves[2].whiteKeys[5].pressed = true;
+                break;
+            case 85: // U
+                this.octaves[2].blackKeys[4].pressed = true;
+                break;
+            case 74: // J
+                this.octaves[2].whiteKeys[6].pressed = true;
+                break;
+            case 75: // k
+                keyboard.octaves[3].whiteKeys[0].pressed = true;
+                break;
+            case 79: // O
+                this.octaves[3].blackKeys[0].pressed = true;
+                break;
+            case 76: // L
+                this.octaves[3].whiteKeys[1].pressed = true;
+                break;
+            case 80: // P
+                this.octaves[3].blackKeys[1].pressed = true;
+                break;
+            case 186: // ;
+                this.octaves[3].whiteKeys[2].pressed = true;
+                break;
+            case 222: // ;
+                this.octaves[3].whiteKeys[3].pressed = true;
+                break;
+            case 221: // ;
+                this.octaves[3].blackKeys[2].pressed = true;
+                break;
+            default:
+                break;
+        }
     }
 
-    update() {
-        for (var i in this.octaves)
-            this.octaves[i].update();
-    }
-
-    draw() {
-        for (var i in this.octaves)
-            this.octaves[i].draw();
+    keyReleased(keyCode) {
+        switch (keyCode) {
+            case 65: // A
+                this.octaves[2].whiteKeys[0].pressed = false;
+                break;
+            case 87: // W
+                this.octaves[2].blackKeys[0].pressed = false;
+                break;
+            case 83: // S
+                this.octaves[2].whiteKeys[1].pressed = false;
+                break;
+            case 69: // E
+                this.octaves[2].blackKeys[1].pressed = false;
+                break;
+            case 68: // D
+                this.octaves[2].whiteKeys[2].pressed = false;
+                break;
+            case 70: // F
+                this.octaves[2].whiteKeys[3].pressed = false;
+                break;
+            case 84: // T
+                this.octaves[2].blackKeys[2].pressed = false;
+                break;
+            case 71: // G
+                this.octaves[2].whiteKeys[4].pressed = false;
+                break;
+            case 89: // Y
+                this.octaves[2].blackKeys[3].pressed = false;
+                break;
+            case 72: // H
+                this.octaves[2].whiteKeys[5].pressed = false;
+                break;
+            case 85: // U
+                this.octaves[2].blackKeys[4].pressed = false;
+                break;
+            case 74: // J
+                this.octaves[2].whiteKeys[6].pressed = false;
+                break;
+            case 75: // k
+                this.octaves[3].whiteKeys[0].pressed = false;
+                break;
+            case 79: // O
+                this.octaves[3].blackKeys[0].pressed = false;
+                break;
+            case 76: // L
+                this.octaves[3].whiteKeys[1].pressed = false;
+                break;
+            case 80: // P
+                this.octaves[3].blackKeys[1].pressed = false;
+                break;
+            case 186: // ;
+                this.octaves[3].whiteKeys[2].pressed = false;
+                break;
+            case 222: // ;
+                this.octaves[3].whiteKeys[3].pressed = false;
+                break;
+            case 221: // ;
+                this.octaves[3].blackKeys[2].pressed = false;
+                break;
+            default:
+                break;
+        }
     }
 }
