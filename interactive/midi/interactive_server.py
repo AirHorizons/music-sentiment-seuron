@@ -17,7 +17,7 @@ def upload():
 
     return fl.render_template('index.html')
 
-def binarySearch(value, alist):
+def binarySearch(target, alist):
     first = 0
     last = len(alist)-1
 
@@ -25,24 +25,33 @@ def binarySearch(value, alist):
 
     while first <= last and foundPos == -1:
         midpoint = (first + last)//2
-        if value == "_".join(alist[midpoint].split("_")[:-1]):
+
+        value = "_".join(alist[midpoint].split("_")[:-1])
+        if target == value:
             foundPos = midpoint;
         else:
-            if value < "_".join(alist[midpoint].split("_")[:-1]):
+            if target < value:
                 last = midpoint - 1
             else:
-                if value > "_".join(alist[midpoint].split("_")[:-1]):
+                if target > value:
                     first = midpoint+1
     return foundPos
 
-def findClosestNoteInVocab(chord, vocab):
-    for note in chord.split(" "):
-        noteWithoutVel = "_".join(note.split("_")[:-1])
-        foundPos = binarySearch(noteWithoutVel, vocab)
+def findClosestNoteInVocab(note, vocab):
+    velocity = int(note.split("_")[-1])
+    noteWithoutVel = "_".join(note.split("_")[:-1])
 
-        if noteWithoutVel != -1:
-            print("found:", vocab[foundPos])
-            return vocab[foundPos]
+    foundPos = binarySearch(noteWithoutVel, vocab)
+    if foundPos != -1:
+        i = foundPos
+
+        possibleVels = []
+        while "_".join(vocab[i].split("_")[:-1]) == noteWithoutVel:
+            possibleVels.append(int(vocab[i].split("_")[-1]))
+            i += 1
+
+        clossestVel = min(possibleVels, key=lambda x:abs(x - velocity))
+        return noteWithoutVel + "_" + str(clossestVel)
 
     return note
 
@@ -52,16 +61,26 @@ def generate(sample_init, sample_len):
     # Replace duration type to number to easily play with tone.js
     for i in range(len(sample_init)):
         if sample_init[i][0] == "n":
-            # Replace duration type to number to easily play with tone.js
-            duration = sample_init[i].split("_")[2]
-            try:
-                d_type = m21.duration.convertQuarterLengthToType(float(duration)/4.)
-            except:
-                print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
-                d_type = "quarter"
+            chord = sample_init[i].split(" ")
 
-            sample_init[i] = sample_init[i].replace(duration, d_type, 1)
-            sample_init[i] = findClosestNoteInVocab(sample_init[i], seq_data.vocab)
+            for j in range(len(chord)):
+                note = chord[j]
+
+                # Replace duration type to number to easily play with tone.js
+                duration = note.split("_")[2]
+                try:
+                    d_type = m21.duration.convertQuarterLengthToType(4/float(duration))
+                except:
+                    print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
+                    d_type = "quarter"
+
+                note = note.replace(duration, d_type, 1)
+                note = findClosestNoteInVocab(note, seq_data.vocab)
+
+                if j == 0:
+                    sample_init[i] = note;
+                else:
+                    sample_init.insert(i, note);
 
     print(sample_init)
 

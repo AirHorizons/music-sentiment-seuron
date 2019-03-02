@@ -70,6 +70,7 @@ function setupKeyboard() {
     // Create keyboard
     var kX = width/2 - (KEYBOARD_OCTAVES * KEY_WIDTH * N_WHITE_KEY)/2;
     var kY = height - KEY_HEIGHT;
+
     keyboard = new Keyboard(kX, kY, KEY_WIDTH, KEY_HEIGHT, KEYBOARD_OCTAVES, KEYBOARD_FIRST_OCTAVE);
 
     keyboard.keyDown = function(pitch, velocity) {
