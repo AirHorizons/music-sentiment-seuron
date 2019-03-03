@@ -61,7 +61,7 @@ function setupMenu() {
 
         // Start the tone.js scheduler
         Tone.Transport.bpm.value = 120;
-        startPlayerPart();
+        Tone.Transport.start();
     });
     button.id("play-button");
 }
@@ -81,6 +81,7 @@ function setupKeyboard() {
 
         if(!isAIPlaying) {
             keysPlayedInTimeDiv[pitch] = {};
+            keysPlayedInTimeDiv[pitch].pitch = pitch;
             keysPlayedInTimeDiv[pitch].start = Tone.Transport.seconds;
         }
     }
@@ -94,6 +95,7 @@ function setupKeyboard() {
         if(!isAIPlaying) {
             if (pitch in keysPlayedInTimeDiv) {
                 keysPlayedInTimeDiv[pitch].end = Tone.Transport.seconds;
+                keysPlayed.push(keysPlayedInTimeDiv[pitch]);
             }
         }
     }
@@ -138,42 +140,8 @@ function setupSampler() {
     }).toMaster();
 }
 
-function startPlayerPart() {
-    keysPlayed = [];
-    keysPlayedInTimeDiv = {};
-
-    playingTimer = 0;
-
-    // Change background color
-    background(20, 20, 20, 255);
-
-    Tone.Transport.cancel();
-    Tone.Transport.start();
-
-    Tone.Transport.scheduleRepeat(function(time) {
-        console.log("HUMAN PLAY!");
-        var measure = schedularCallback(time);
-
-        var n_rests = 0;
-        for(var i = 0; i < measure.length; i++) {
-            if(measure[i] == ".") {
-                n_rests++;
-            }
-        }
-
-        if(n_rests < measure.length) {
-            keysPlayed = keysPlayed.concat(measure);
-        }
-
-        keysPlayedInTimeDiv = {};
-        lastMeasureTime = time;
-    }, "1m");
-}
-
 function startAIPart(part) {
     var evIx = 0;
-    Tone.Transport.cancel();
-    Tone.Transport.start();
 
     Tone.Transport.scheduleRepeat(function(time) {
         if(!isAIPlaying)
@@ -211,9 +179,7 @@ function startAIPart(part) {
             isAIPlaying = false;
 
             Tone.Transport.cancel();
-            Tone.Transport.stop();
-
-            startPlayerPart();
+            background(20, 20, 20, 255);
         }
     }, baseTimeDiv.toString() + "n");
 }
@@ -242,15 +208,13 @@ function update(dt) {
     if(playingTimer > generationTime) {
         if(keysPlayed.length > 0 && !isAIPlaying) {
             console.log("AI PLAY!");
-            console.log(keysPlayed);
+            noteSequence = keys2NoteSequence(keysPlayed);
+            console.log(noteSequence);
 
             isAIPlaying = true;
             aiPlayingTimer = 0;
 
-            Tone.Transport.cancel();
-            Tone.Transport.stop();
-
-            sendNoteSequence(keysPlayed.toString(), genSequenceLen, generationCallback);
+            sendNoteSequence(noteSequence, genSequenceLen, generationCallback);
 
             keysPlayed = [];
             keysPlayedInTimeDiv = {};
@@ -280,43 +244,27 @@ function generationCallback(generatedSequence) {
     startAIPart(part);
 }
 
-function schedularCallback(time) {
-    // Create empty measure
-    var measure = [];
-    for (var i = 0; i < baseTimeDiv; i++) {
-        measure[i] = ".";
-    }
+function keys2NoteSequence(keysPlayed) {
+    var lastNoteStart = 1000;
 
-    for(var key in keysPlayedInTimeDiv) {
-      if (keysPlayedInTimeDiv.hasOwnProperty(key)) {
-        var note = keysPlayedInTimeDiv[key];
-        var pitch  = key;
-
-        // Calculate note offset in seconds
-        var offset = Math.max(0, (note.start - lastMeasureTime));
-        offset = offset / Tone.Time("1m").toSeconds();
-
-        // Calculate duration
-        var end = time;
-        if ("end" in note) {
-            end = note.end;
-        }
-
-        var duration = Math.round((end - note.start) * 100)/100;
+    var noteSequence = ""
+    for(var i = 0; i < keysPlayed.length; i++) {
+        var duration = Math.round((keysPlayed[i].end - keysPlayed[i].start) * 100)/100;
         duration = Tone.Time(duration).toNotation()[0];
+        noteSequence += "n_" + keysPlayed[i].pitch + "_" + duration + "_80";
 
-        // Calculate position in the measure
-        var beat = Math.floor(offset * measure.length);
-        if(measure[beat] == ".") {
-            measure[beat] = "n_" + pitch.toString() + "_" + duration + "_80";
+        notesDist = Math.abs(keysPlayed[i].start - lastNoteStart);
+        if(notesDist > Tone.Time("16n").toSeconds()) {
+            noteSequence += " . ";
         }
         else {
-            measure[beat] += " n_" + pitch.toString() + "_" + duration + "_80";
+            noteSequence += " ";
         }
-      }
+
+        lastNoteStart = keysPlayed[i].start;
     }
 
-    return measure;
+    return noteSequence.substring(0, noteSequence.length - 1);
 }
 
 // ----------------------------------------
@@ -330,9 +278,7 @@ function mousePressed() {
 }
 
 function mouseReleased() {
-    if(!isAIPlaying) {
-        isMousePressed = false;
-    }
+    isMousePressed = false;
 }
 
 function keyPressed() {
@@ -342,9 +288,7 @@ function keyPressed() {
 }
 
 function keyReleased() {
-    if(!isAIPlaying) {
-        keyboard.keyReleased(keyCode);
-    }
+    keyboard.keyReleased(keyCode);
 }
 
 function windowResized() {

@@ -11,7 +11,7 @@ def index():
 @app.route('/generate', methods=['POST', 'GET'])
 def upload():
     if fl.request.method == 'POST':
-        noteSequence = fl.request.form['noteSequence'].split(",")
+        noteSequence = fl.request.form['noteSequence'].split(" ")
         genSequenceLen = int(fl.request.form['genSequenceLen'])
         return generate(noteSequence, genSequenceLen)
 
@@ -74,7 +74,7 @@ def generate(sample_init, sample_len):
                     print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
                     d_type = "quarter"
 
-                note = note.replace(duration, d_type, 1)
+                note = note.replace("_" + duration + "_", "_" + d_type + "_", 1)
                 note = findClosestNoteInVocab(note, seq_data.vocab)
 
                 if j == 0:
@@ -92,7 +92,7 @@ def generate(sample_init, sample_len):
             # Replace duration type to number to easily play with tone.js
             duration = sample[i].split("_")[2]
             d_number = int(m21.duration.convertTypeToNumber(duration))
-            sample[i] = sample[i].replace(duration, str(d_number), 1)
+            sample[i] = sample[i].replace("_" + duration + "_", "_" + str(d_number) + "_", 1)
 
     return " ".join(sample)
 
