@@ -179,6 +179,8 @@ function startAIPart(part) {
             isAIPlaying = false;
 
             Tone.Transport.cancel();
+            Tone.Transport.start();
+
             background(20, 20, 20, 255);
         }
     }, baseTimeDiv.toString() + "n");
@@ -245,26 +247,33 @@ function generationCallback(generatedSequence) {
 }
 
 function keys2NoteSequence(keysPlayed) {
-    var lastNoteStart = 1000;
+    var lastNoteStart = 0;
 
     var noteSequence = ""
     for(var i = 0; i < keysPlayed.length; i++) {
         var duration = Math.round((keysPlayed[i].end - keysPlayed[i].start) * 100)/100;
         duration = Tone.Time(duration).toNotation()[0];
+
+        if(i > 0) {
+            notesDist = Math.abs(keysPlayed[i].start - lastNoteStart);
+
+            if(notesDist > Tone.Time("16n").toSeconds()) {
+                nRests = Math.ceil(notesDist/Tone.Time("16n").toSeconds())
+                for(var j = 0; j < nRests; j++) {
+                    noteSequence += " . ";
+                }
+            }
+            else {
+                noteSequence += " ";
+            }
+        }
+
         noteSequence += "n_" + keysPlayed[i].pitch + "_" + duration + "_80";
-
-        notesDist = Math.abs(keysPlayed[i].start - lastNoteStart);
-        if(notesDist > Tone.Time("16n").toSeconds()) {
-            noteSequence += " . ";
-        }
-        else {
-            noteSequence += " ";
-        }
-
         lastNoteStart = keysPlayed[i].start;
     }
 
-    return noteSequence.substring(0, noteSequence.length - 1);
+    noteSequence += " . ";
+    return noteSequence;
 }
 
 // ----------------------------------------

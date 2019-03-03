@@ -60,7 +60,7 @@ def generate(sample_init, sample_len):
 
     # Replace duration type to number to easily play with tone.js
     for i in range(len(sample_init)):
-        if sample_init[i][0] == "n":
+        if len(sample_init[i]) > 0 and sample_init[i][0] == "n":
             chord = sample_init[i].split(" ")
 
             for j in range(len(chord)):

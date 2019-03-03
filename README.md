@@ -3,15 +3,13 @@
 This is a object-oriented and self-contained reimplementation of OpenAI's Sentiment Neuron. It
 currently supports text and midi sequences.
 
-# Installing Dependecies
+# Installing
 
-The core features of this projects has a few dependecies: NumPy, PyTorch, Sklearn, Music21
+$ pip install sentneuron
 
-$ pip install numpy torch torchvision sklearn music21
+For running the interactive sampler, also install the following dependecies: Flask
 
-For running the interactive sampler, also install the following dependecies: pygame
-
-$ pip install pygame
+$ pip install flask
 
 # Running examples
 
@@ -19,7 +17,10 @@ This projects comes with two test scripts: one for trainning a new model and one
 pre-trainned models. Both scripts have an example of sampling sequences from the models.
 
 To train a new model:
-$ python test_train.py
+$ python examples/train_generative_txt.py
+
+After trainning, this script stores the model inside the "trained_models/" folder. You can
+then load it and sample sequences (either midi or text) using the following example:
 
 To load a pre-trainned model:
-$ python test_load.py
+$ python examples/test_generative_txt.py

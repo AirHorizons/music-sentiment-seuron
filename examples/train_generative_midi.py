@@ -1,13 +1,10 @@
 import sentneuron as sn
 
-# Local imports
-from utils import train_generative_model
-
 # Load midi data
 seq_data = sn.encoders.midi.EncoderMidiPerform("../input/generative/midi/beethoven_mond/")
 
 # Model layer sizes
-neuron = train_generative_model(seq_data, embed_size=64, hidden_size=128, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4)
+neuron = sn.utils.train_generative_model(seq_data, embed_size=64, hidden_size=128, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4)
 neuron.save(seq_data, "../trained_models/beethoven_mond")
 
 # Sampling
