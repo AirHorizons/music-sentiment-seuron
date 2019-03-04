@@ -1,6 +1,7 @@
 var N_WHITE_KEY = 7;
 var N_BLACK_KEY = 6;
-var KEYS_PER_OCTAVE = (N_WHITE_KEY + N_BLACK_KEY - 2);
+var KEYS_PER_OCTAVE = (N_WHITE_KEY + N_BLACK_KEY - 1);
+var OCTAVE_SHIFT = 24;
 
 var MIDI_MAX_PITCH = 128;
 
@@ -53,14 +54,22 @@ class Key {
 
     play() {
         if(this.state != KeyState.PLAYING) {
+            var note = Tone.Frequency(this.pitch + OCTAVE_SHIFT, "midi").toNote();
+            this.keyboard.sampler.triggerAttack(note, Tone.Transport.now(), this.velocity);
+
             this.keyboard.keyDown(this.pitch, this.velocity);
             this.state = KeyState.PLAYING;
         }
     }
 
     release() {
-        if(this.state == KeyState.PLAYING)
+        if(this.state == KeyState.PLAYING) {
+            var note = Tone.Frequency(this.pitch + OCTAVE_SHIFT, "midi").toNote();
+            this.keyboard.sampler.triggerRelease(note);
+
             this.keyboard.keyUp(this.pitch, this.pressedTimer);
+        }
+
         this.state = KeyState.RELEASED;
 
         this.pressedTimer = 0;
@@ -68,8 +77,12 @@ class Key {
     }
 
     select() {
-        if(this.state == KeyState.PLAYING)
+        if(this.state == KeyState.PLAYING) {
+            var note = Tone.Frequency(this.pitch + OCTAVE_SHIFT, "midi").toNote();
+            this.keyboard.sampler.triggerRelease(note);
+
             this.keyboard.keyUp(this.pitch, this.pressedTimer);
+        }
 
         this.state = KeyState.SELECTED;
 
@@ -77,9 +90,6 @@ class Key {
     }
 
     update(dt, isMousePressed) {
-        if(this.isMouseOver()) {
-            isMousePressed ? this.play() : this.select();
-        }
 
         if(this.isKeyPressed()) {
             this.play();
@@ -94,6 +104,9 @@ class Key {
                     this.releaseTimer = 0;
                 }
             }
+        }
+        else if(this.isMouseOver()) {
+            isMousePressed ? this.play() : this.select();
         }
 
         if(!this.isMouseOver() && !this.isKeyPressed()) {
@@ -148,7 +161,7 @@ class Octave {
 
     constructKeys(keyWidth, keyHeight) {
         // Create white keys
-        var whitePitch = ((this.keyboard.firstOctave + this.ix) * KEYS_PER_OCTAVE) + this.ix;
+        var whitePitch = this.ix * KEYS_PER_OCTAVE;
         for (var i = 0; i < N_WHITE_KEY; i++) {
 
             // Create white key
@@ -161,7 +174,7 @@ class Octave {
         }
 
         // Create black keys
-        var blackPitch = ((this.keyboard.firstOctave + this.ix) * KEYS_PER_OCTAVE) + this.ix + 1;
+        var blackPitch = this.ix * KEYS_PER_OCTAVE + 1;
         for (var i = 0; i < N_BLACK_KEY; i++) {
 
             // Skip the third black key
@@ -239,12 +252,11 @@ class Octave {
 }
 
 class Keyboard {
-    constructor(x, y, keyWidth, keyHeight, octaves, firstOctave) {
+    constructor(x, y, keyWidth, keyHeight, octaves) {
         this.x = x;
         this.y = y;
         this.w = N_WHITE_KEY * octaves * keyWidth;
         this.h = keyHeight;
-        this.firstOctave = firstOctave;
 
         // Create octaves
         this.octaves = []
@@ -252,6 +264,43 @@ class Keyboard {
             var octave = new Octave(this, i, keyWidth, keyHeight);
             this.octaves.push(octave);
         }
+
+        // Create sampler with salamder samples
+        this.sampler = new Tone.Sampler({
+            "A0" : "A0.[mp3|ogg]",
+            "C1" : "C1.[mp3|ogg]",
+            "D#1" : "Ds1.[mp3|ogg]",
+            "F#1" : "Fs1.[mp3|ogg]",
+            "A1" : "A1.[mp3|ogg]",
+            "C2" : "C2.[mp3|ogg]",
+            "D#2" : "Ds2.[mp3|ogg]",
+            "F#2" : "Fs2.[mp3|ogg]",
+            "A2" : "A2.[mp3|ogg]",
+            "C3" : "C3.[mp3|ogg]",
+            "D#3" : "Ds3.[mp3|ogg]",
+            "F#3" : "Fs3.[mp3|ogg]",
+            "A3" : "A3.[mp3|ogg]",
+            "C4" : "C4.[mp3|ogg]",
+            "D#4" : "Ds4.[mp3|ogg]",
+            "F#4" : "Fs4.[mp3|ogg]",
+            "A4" : "A4.[mp3|ogg]",
+            "C5" : "C5.[mp3|ogg]",
+            "D#5" : "Ds5.[mp3|ogg]",
+            "F#5" : "Fs5.[mp3|ogg]",
+            "A5" : "A5.[mp3|ogg]",
+            "C6" : "C6.[mp3|ogg]",
+            "D#6" : "Ds6.[mp3|ogg]",
+            "F#6" : "Fs6.[mp3|ogg]",
+            "A6" : "A6.[mp3|ogg]",
+            "C7" : "C7.[mp3|ogg]",
+            "D#7" : "Ds7.[mp3|ogg]",
+            "F#7" : "Fs7.[mp3|ogg]",
+            "A7" : "A7.[mp3|ogg]",
+            "C8" : "C8.[mp3|ogg]"
+        }, {
+            "release" : 1,
+            "baseUrl" : "./static/audio/salamander/"
+        }).toMaster();
     }
 
     update(dt, isMousePressed) {
@@ -284,61 +333,61 @@ class Keyboard {
     keyPressed(keyCode) {
         switch (keyCode) {
             case 65: // A
-                this.octaves[2].whiteKeys[0].pressed = true;
+                this.octaves[3].whiteKeys[0].pressed = true;
                 break;
             case 87: // W
-                this.octaves[2].blackKeys[0].pressed = true;
-                break;
-            case 83: // S
-                this.octaves[2].whiteKeys[1].pressed = true;
-                break;
-            case 69: // E
-                this.octaves[2].blackKeys[1].pressed = true;
-                break;
-            case 68: // D
-                this.octaves[2].whiteKeys[2].pressed = true;
-                break;
-            case 70: // F
-                this.octaves[2].whiteKeys[3].pressed = true;
-                break;
-            case 84: // T
-                this.octaves[2].blackKeys[2].pressed = true;
-                break;
-            case 71: // G
-                this.octaves[2].whiteKeys[4].pressed = true;
-                break;
-            case 89: // Y
-                this.octaves[2].blackKeys[3].pressed = true;
-                break;
-            case 72: // H
-                this.octaves[2].whiteKeys[5].pressed = true;
-                break;
-            case 85: // U
-                this.octaves[2].blackKeys[4].pressed = true;
-                break;
-            case 74: // J
-                this.octaves[2].whiteKeys[6].pressed = true;
-                break;
-            case 75: // k
-                keyboard.octaves[3].whiteKeys[0].pressed = true;
-                break;
-            case 79: // O
                 this.octaves[3].blackKeys[0].pressed = true;
                 break;
-            case 76: // L
+            case 83: // S
                 this.octaves[3].whiteKeys[1].pressed = true;
                 break;
-            case 80: // P
+            case 69: // E
                 this.octaves[3].blackKeys[1].pressed = true;
                 break;
-            case 186: // ;
+            case 68: // D
                 this.octaves[3].whiteKeys[2].pressed = true;
                 break;
-            case 222: // ;
+            case 70: // F
                 this.octaves[3].whiteKeys[3].pressed = true;
                 break;
-            case 221: // ;
+            case 84: // T
                 this.octaves[3].blackKeys[2].pressed = true;
+                break;
+            case 71: // G
+                this.octaves[3].whiteKeys[4].pressed = true;
+                break;
+            case 89: // Y
+                this.octaves[3].blackKeys[3].pressed = true;
+                break;
+            case 72: // H
+                this.octaves[3].whiteKeys[5].pressed = true;
+                break;
+            case 85: // U
+                this.octaves[3].blackKeys[4].pressed = true;
+                break;
+            case 74: // J
+                this.octaves[3].whiteKeys[6].pressed = true;
+                break;
+            case 75: // k
+                this.octaves[4].whiteKeys[0].pressed = true;
+                break;
+            case 79: // O
+                this.octaves[4].blackKeys[0].pressed = true;
+                break;
+            case 76: // L
+                this.octaves[4].whiteKeys[1].pressed = true;
+                break;
+            case 80: // P
+                this.octaves[4].blackKeys[1].pressed = true;
+                break;
+            case 186: // ;
+                this.octaves[4].whiteKeys[2].pressed = true;
+                break;
+            case 222: // ;
+                this.octaves[4].whiteKeys[3].pressed = true;
+                break;
+            case 221: // ;
+                this.octaves[4].blackKeys[2].pressed = true;
                 break;
             default:
                 break;
@@ -348,64 +397,65 @@ class Keyboard {
     keyReleased(keyCode) {
         switch (keyCode) {
             case 65: // A
-                this.octaves[2].whiteKeys[0].pressed = false;
-                break;
-            case 87: // W
-                this.octaves[2].blackKeys[0].pressed = false;
-                break;
-            case 83: // S
-                this.octaves[2].whiteKeys[1].pressed = false;
-                break;
-            case 69: // E
-                this.octaves[2].blackKeys[1].pressed = false;
-                break;
-            case 68: // D
-                this.octaves[2].whiteKeys[2].pressed = false;
-                break;
-            case 70: // F
-                this.octaves[2].whiteKeys[3].pressed = false;
-                break;
-            case 84: // T
-                this.octaves[2].blackKeys[2].pressed = false;
-                break;
-            case 71: // G
-                this.octaves[2].whiteKeys[4].pressed = false;
-                break;
-            case 89: // Y
-                this.octaves[2].blackKeys[3].pressed = false;
-                break;
-            case 72: // H
-                this.octaves[2].whiteKeys[5].pressed = false;
-                break;
-            case 85: // U
-                this.octaves[2].blackKeys[4].pressed = false;
-                break;
-            case 74: // J
-                this.octaves[2].whiteKeys[6].pressed = false;
-                break;
-            case 75: // k
                 this.octaves[3].whiteKeys[0].pressed = false;
                 break;
-            case 79: // O
+            case 87: // W
                 this.octaves[3].blackKeys[0].pressed = false;
                 break;
-            case 76: // L
+            case 83: // S
                 this.octaves[3].whiteKeys[1].pressed = false;
                 break;
-            case 80: // P
+            case 69: // E
                 this.octaves[3].blackKeys[1].pressed = false;
                 break;
-            case 186: // ;
+            case 68: // D
                 this.octaves[3].whiteKeys[2].pressed = false;
                 break;
-            case 222: // ;
+            case 70: // F
                 this.octaves[3].whiteKeys[3].pressed = false;
                 break;
-            case 221: // ;
+            case 84: // T
                 this.octaves[3].blackKeys[2].pressed = false;
+                break;
+            case 71: // G
+                this.octaves[3].whiteKeys[4].pressed = false;
+                break;
+            case 89: // Y
+                this.octaves[3].blackKeys[3].pressed = false;
+                break;
+            case 72: // H
+                this.octaves[3].whiteKeys[5].pressed = false;
+                break;
+            case 85: // U
+                this.octaves[3].blackKeys[4].pressed = false;
+                break;
+            case 74: // J
+                this.octaves[3].whiteKeys[6].pressed = false;
+                break;
+            case 75: // k
+                this.octaves[4].whiteKeys[0].pressed = false;
+                break;
+            case 79: // O
+                this.octaves[4].blackKeys[0].pressed = false;
+                break;
+            case 76: // L
+                this.octaves[4].whiteKeys[1].pressed = false;
+                break;
+            case 80: // P
+                this.octaves[4].blackKeys[1].pressed = false;
+                break;
+            case 186: // ;
+                this.octaves[4].whiteKeys[2].pressed = false;
+                break;
+            case 222: // ;
+                this.octaves[4].whiteKeys[3].pressed = false;
+                break;
+            case 221: // ;
+                this.octaves[4].blackKeys[2].pressed = false;
                 break;
             default:
                 break;
         }
     }
+
 }
