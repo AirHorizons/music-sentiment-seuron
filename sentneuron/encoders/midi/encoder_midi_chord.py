@@ -45,3 +45,6 @@ class EncoderMidiChord(EncoderMidi):
         main_stream  = m21.stream.Stream([piano_stream])
 
         return m21.midi.translate.streamToMidiFile(main_stream)
+
+    def type(self):
+        return "midi_chord"

@@ -17,15 +17,27 @@ class EncoderMidiPerform(EncoderMidi):
         piano_roll = self.midi2piano_roll(midi_stream, sample_freq, piano_range, modulate_range, add_perform=True)
 
         # Transform piano roll into a list of notes in string format
+        lastVelocity = -1
+        lastDuration = -1.0
+
         note_encoding = []
         for i in range(len(piano_roll)):
             for j in range(len(piano_roll[i]) - 1):
                 duration = piano_roll[i,j][0]
-                velocity = piano_roll[i,j][1]
+                velocity = int(piano_roll[i,j][1])
+
+                if velocity != 0 and velocity != lastVelocity:
+                    note_encoding.append("v_" + str(velocity))
+
+                if duration != 0 and duration != lastDuration:
+                    duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
+                    note_encoding.append("d_" + duration_type)
 
                 if duration != 0 and velocity != 0:
-                    duration, _ = m21.duration.quarterLengthToClosestType(duration)
-                    note_encoding.append("n_" + str(j) + "_" + duration + "_" + str(int(velocity)))
+                    note_encoding.append("n_" + str(j))
+
+                lastVelocity = velocity
+                lastDuration = duration
 
             # Time events are stored at the last row
             tempo_change = piano_roll[i,-1][0]
@@ -39,6 +51,9 @@ class EncoderMidiPerform(EncoderMidi):
     def encoding2midi(self, note_encoding,  ts_duration=0.25):
         notes = []
 
+        velocity = 100
+        duration = "quarter"
+
         ts = 0
         for note in note_encoding:
             if note == ".":
@@ -46,14 +61,17 @@ class EncoderMidiPerform(EncoderMidi):
 
             elif note[0] == "n":
                 pitch    = int(note.split("_")[1])
-                velocity = int(note.split("_")[3])
-                duration =     note.split("_")[2]
-
                 note = m21.note.Note(pitch)
                 note.duration = m21.duration.Duration(type=duration)
                 note.offset = ts * ts_duration
                 note.volume.velocity = velocity
                 notes.append(note)
+
+            elif note[0] == "d":
+                duration = note.split("_")[1]
+
+            elif note[0] == "v":
+                velocity = int(note.split("_")[1])
 
             elif note[0] == "t":
                 tempo = int(note.split("_")[1])
@@ -70,3 +88,6 @@ class EncoderMidiPerform(EncoderMidi):
         main_stream  = m21.stream.Stream([piano_stream])
 
         return m21.midi.translate.streamToMidiFile(main_stream)
+
+    def type(self):
+        return "midi_perform"

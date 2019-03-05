@@ -28,6 +28,9 @@ class EncoderText(Encoder):
 
         return encoded_text, vocab
 
+    def type(self):
+        return "txt"
+
     def decode(self, ixs):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)
 

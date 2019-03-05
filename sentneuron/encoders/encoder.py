@@ -8,24 +8,22 @@ class Encoder(ABC):
         if not pre_loaded:
             # Load data and vocabulary from files
             self.data, self.vocab = self.load(datapath)
-            self.vocab = list(self.vocab)
-            self.vocab.sort()
         else:
             # Load vocabulary
-            with open(datapath, 'r') as fp:
-                self.vocab = fp.read().split(" ")
-                self.vocab = list(self.vocab)
-                self.vocab.sort()
-                fp.close()
+            self.vocab = datapath.split(" ")
 
-            # Remove empty element "" from the first position
-            self.vocab = self.vocab[1:]
+        self.vocab = list(self.vocab)
+        self.vocab.sort()
 
         self.encoding_size = len(self.vocab)
 
         # Create dictionaries to support symbol to index conversion and vice-versa
         self.symbol_to_ix = { symb:i for i,symb in enumerate(self.vocab) }
         self.ix_to_symbol = { i:symb for i,symb in enumerate(self.vocab) }
+
+    @abstractmethod
+    def type(self):
+        pass
 
     @abstractmethod
     def load(self, datapath):

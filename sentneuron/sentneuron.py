@@ -1,5 +1,5 @@
 # External imports
-import datetime
+import json
 import torch
 import torch.nn       as nn
 import torch.optim    as optim
@@ -22,17 +22,19 @@ class SentimentNeuron(nn.Module):
 
         # Init layer sizes
         self.input_size  = input_size
+        self.embed_size  = embed_size
         self.hidden_size = hidden_size
         self.output_size = output_size
 
         # Init number of LSTM layers
         self.n_layers = n_layers
+        self.dropout  = dropout
 
         # Embedding layer
         self.i2h = nn.Embedding(input_size, embed_size)
 
         # Dropout layer
-        self.dropout = nn.Dropout(dropout)
+        self.drop = nn.Dropout(dropout)
 
         # Hidden to hidden layers
         self.h2h = []
@@ -66,7 +68,7 @@ class SentimentNeuron(nn.Module):
             	emb_x = emb_x + h_1_i
 
             if i != len(self.h2h):
-                emb_x = self.dropout(emb_x)
+                emb_x = self.drop(emb_x)
 
             h_1 += [h_1_i]
             c_1 += [c_1_i]
@@ -236,11 +238,18 @@ class SentimentNeuron(nn.Module):
         torch.save(self.state_dict(), model_filename)
 
         # Persist encoding vocab on disk
-        vocab_filename = path + "_vocab.txt"
-        with open(vocab_filename, 'w') as fp:
-            for symb in seq_dataset.vocab:
-                fp.write(symb + " ")
-            fp.close()
+        meta_data = {}
+        meta_filename = path + "_meta.json"
+        with open(meta_filename, 'w') as fp:
+            meta_data["vocab"] = " ".join([symb for symb in seq_dataset.vocab])
+            meta_data["data_type"]   = seq_dataset.type()
+            meta_data["input_size"]  = self.input_size
+            meta_data["embed_size"]  = self.embed_size
+            meta_data["hidden_size"] = self.hidden_size
+            meta_data["output_size"] = self.output_size
+            meta_data["n_layers"]    = self.n_layers
+            meta_data["dropout"]     = self.dropout
+            json.dump(meta_data, fp)
 
         print("Saved model:", model_filename)
 
