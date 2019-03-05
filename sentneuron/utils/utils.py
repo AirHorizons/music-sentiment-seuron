@@ -9,7 +9,7 @@ def load_generative_model(model_path):
     # Load pre-calculated vocabulary
     seq_data = None
     if meta["data_type"] == "txt":
-        seq_data = sn.encoders.midi.EncoderText(meta["vocab"], pre_loaded=True)
+        seq_data = sn.encoders.EncoderText(meta["vocab"], pre_loaded=True)
     elif meta["data_type"] == "midi_note":
         seq_data = sn.encoders.midi.EncoderMidiNote(meta["vocab"], pre_loaded=True)
     elif meta["data_type"]== "midi_chord":
