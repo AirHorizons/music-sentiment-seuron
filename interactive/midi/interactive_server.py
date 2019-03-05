@@ -37,7 +37,7 @@ def binarySearch(target, alist):
                     first = midpoint+1
     return foundPos
 
-def findClosestNoteInVocab(note, vocab):
+def findClosestSymbolInVocab(note, vocab):
     velocity = int(note.split("_")[-1])
     noteWithoutVel = "_".join(note.split("_")[:-1])
 
@@ -60,47 +60,33 @@ def generate(sample_init, sample_len):
 
     # Replace duration type to number to easily play with tone.js
     for i in range(len(sample_init)):
-        if len(sample_init[i]) > 0 and sample_init[i][0] == "n":
-            chord = sample_init[i].split(" ")
+        if sample_init[i][0] == "d":
+            # Replace duration type to number to easily play with tone.js
+            duration = sample_init[i].split("_")[1]
+            try:
+                d_type = m21.duration.convertQuarterLengthToType(4./float(duration))
+            except:
+                print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
+                d_type = "quarter"
 
-            for j in range(len(chord)):
-                note = chord[j]
-
-                # Replace duration type to number to easily play with tone.js
-                duration = note.split("_")[2]
-                try:
-                    d_type = m21.duration.convertQuarterLengthToType(4/float(duration))
-                except:
-                    print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
-                    d_type = "quarter"
-
-                note = note.replace("_" + duration + "_", "_" + d_type + "_", 1)
-                note = findClosestNoteInVocab(note, seq_data.vocab)
-
-                if j == 0:
-                    sample_init[i] = note;
-                else:
-                    sample_init.insert(i, note);
+            sample_init[i] = sample_init[i].replace("d_" + duration, "d_" + d_type)
+            # sample_init[i] = findClosestSymbolInVocab(sample_init[i], seq_data.vocab)
 
     print(sample_init)
 
     sample = neuron.sample(seq_data, sample_init=sample_init, sample_len=sample_len)
-    seq_data.write(sample, "../../samples/beethoven_server")
+    seq_data.write(sample, "../../samples/beethoven_mond")
 
     for i in range(len(sample)):
-        if sample[i][0] == "n":
+        if sample[i][0] == "d":
             # Replace duration type to number to easily play with tone.js
-            duration = sample[i].split("_")[2]
+            duration = sample[i].split("_")[1]
             d_number = int(m21.duration.convertTypeToNumber(duration))
-            sample[i] = sample[i].replace("_" + duration + "_", "_" + str(d_number) + "_", 1)
+            sample[i] = sample[i].replace("d_" + duration, "d_" + str(d_number))
 
     return " ".join(sample)
 
-# Load pre-calculated vocabulary
-seq_data = sn.encoders.midi.EncoderMidiPerform("../../trained_models/beethoven_vocab.txt", pre_loaded=True)
-
-# Model layer sizes
-model_path = "../../trained_models/beethoven_model.pth"
-neuron = sn.utils.load_generative_model(model_path, seq_data, embed_size=64, hidden_size=4096, n_layers=1, dropout=0)
+# Load pre-trained model
+neuron, seq_data = sn.utils.load_generative_model('../../trained_models/beethoven_mond')
 
 app.run()

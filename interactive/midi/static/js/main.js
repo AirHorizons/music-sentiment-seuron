@@ -21,7 +21,7 @@ function setup() {
     isMainStarted  = false;
     isAIPlaying    = false;
 
-    genSequenceLen = 200;
+    genSequenceLen = 50;
 
     playingTimer    = 0;
     aiPlayingTimer  = 0;
@@ -94,31 +94,40 @@ function setupKeyboard() {
 function startAIPart(part) {
     var evIx = 0;
 
+    console.log(part)
     Tone.Transport.scheduleRepeat(function(time) {
         if(!isAIPlaying)
             return;
+
+        var duration = "4n";
+        var velocity = 1.0
 
         if(evIx < part.length) {
             if(part[evIx][0] == ".") {
                 evIx++;
             }
-            else if(part[evIx][0] == "n" || part[evIx][0] == "t") {
+            else {
                 while(evIx < part.length && part[evIx][0] != ".") {
                     var ev = part[evIx].split("_");
 
-                    if(part[evIx][0] == "n") {
-                        var pitch    = parseInt(ev[1]);
-                        var duration = ev[2] + "n";
-                        var velocity = parseInt(ev[3])/MAX_VELOCITY;
-
+                    switch (part[evIx][0]) {
+                      case "n":
                         console.log("PLAY NOTE: " + part[evIx]);
+                        var pitch = parseInt(ev[1]);
                         keyboard.playKeyWithPitch(pitch, Tone.Time(duration).toSeconds(), velocity);
-                    }
-                    else {
+                        break;
+                      case "d":
+                        duration = ev[1] + "n";
+                        break;
+                      case "v":
+                        velocity = parseInt(ev[1])/MAX_VELOCITY;
+                        break;
+                      case "t":
                         var tempo = parseInt(ev[1]);
                         if(tempo >= 20) {
                             Tone.Transport.bpm.value = tempo;
                         }
+                        break;
                     }
 
                     evIx++;
@@ -129,6 +138,7 @@ function startAIPart(part) {
             console.log("AI STOP!");
             isAIPlaying = false;
 
+            Tone.Transport.bpm.value = 120;
             Tone.Transport.cancel();
             Tone.Transport.start();
 
@@ -204,10 +214,16 @@ function keys2NoteSequence(keysPlayed) {
         return a.start - b.start;
     });
 
-    var noteSequence = ""
+    var lastDuration = ""
+    var noteSequence = "v_100 t_120 "
+
     for(var i = 0; i < keysPlayed.length; i++) {
         var duration = Math.round((keysPlayed[i].end - keysPlayed[i].start) * 100)/100;
         duration = Tone.Time(duration).toNotation()[0];
+
+        if(duration != lastDuration) {
+          noteSequence += "d_" + duration + " "
+        }
 
         if(i > 0) {
             notesDist = Math.abs(keysPlayed[i].start - lastNoteStart);
@@ -215,19 +231,18 @@ function keys2NoteSequence(keysPlayed) {
             if(notesDist > Tone.Time("16n").toSeconds()) {
                 nRests = Math.ceil(notesDist/Tone.Time("16n").toSeconds())
                 for(var j = 0; j < nRests; j++) {
-                    noteSequence += " . ";
+                    noteSequence += ". ";
                 }
-            }
-            else {
-                noteSequence += " ";
             }
         }
 
-        noteSequence += "n_" + keysPlayed[i].pitch + "_" + duration + "_80";
+        noteSequence += "n_" + keysPlayed[i].pitch + " ";
+
         lastNoteStart = keysPlayed[i].start;
+        lastDuration = duration
     }
 
-    noteSequence += " . ";
+    noteSequence += ".";
     return noteSequence;
 }
 
