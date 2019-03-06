@@ -1,4 +1,5 @@
 import json
+import re
 import numpy as np
 
 from abc import ABC, abstractmethod
@@ -11,8 +12,11 @@ class Encoder(ABC):
         else:
             # Load vocabulary
             self.vocab = datapath.split(" ")
+            for i in range(len(self.vocab)):
+                if self.vocab[i] == "":
+                    self.vocab[i] = " "
 
-        self.vocab = list(self.vocab)
+        self.vocab = list(set(self.vocab))
         self.vocab.sort()
 
         self.encoding_size = len(self.vocab)

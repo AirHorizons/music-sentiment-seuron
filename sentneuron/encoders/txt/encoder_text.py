@@ -37,6 +37,6 @@ class EncoderText(Encoder):
         return file.read()
 
     def write(self, text, path):
-        f = open(path + ".txt", "a")
+        f = open(path + ".txt", "w")
         f.write(text)
         f.close()
