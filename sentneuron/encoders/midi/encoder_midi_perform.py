@@ -7,7 +7,7 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiPerform(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=1):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=12):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
@@ -46,7 +46,7 @@ class EncoderMidiPerform(EncoderMidi):
 
             note_encoding.append(".")
 
-        return note_encoding
+        return " ".join(note_encoding)
 
     def encoding2midi(self, note_encoding,  ts_duration=0.25):
         notes = []
@@ -55,7 +55,7 @@ class EncoderMidiPerform(EncoderMidi):
         duration = "quarter"
 
         ts = 0
-        for note in note_encoding:
+        for note in note_encoding.split(" "):
             if note == ".":
                 ts += 1
 

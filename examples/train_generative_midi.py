@@ -23,6 +23,6 @@ neuron = sn.utils.train_generative_model(seq_data, opt.embed_size, opt.hidden_si
 neuron.save(seq_data, "../trained_models/" + dataset_name)
 
 # Sampling
-notes = ["v_80", "t_40", "d_quarter", "n_60", ".", "n_62", "."]
-sample = neuron.sample(seq_data, sample_init=notes, sample_len=opt.seq_length)
+notes = "v_80 t_40 d_quarter n_60 . n_62 ."
+sample = neuron.sample(seq_data, sample_init=notes.split(" "), sample_len=opt.seq_length)
 seq_data.write(sample, "../samples/" + dataset_name)

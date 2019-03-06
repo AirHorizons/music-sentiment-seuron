@@ -23,23 +23,36 @@ class EncoderMidi(Encoder):
             if os.path.isfile(midipath) and (midipath[-5:] == ".midi" or midipath[-4:] == ".mid"):
                 print("Parsing midi file:", midipath)
 
-                # Create a music21 stream and open the midi file
-                midi = m21.midi.MidiFile()
+                # Split datapath into dir and filename
+                midi_dir = "/".join(midipath.split("/")[:-1])
+                midi_name = midipath.split("/")[-1].split(".")[0]
 
-                try:
-                    midi.open(midipath)
-                    midi.read()
-                    midi.close()
-                except:
-                    print("Skipping file: Midi file has bad formatting")
-                    continue
+                # If txt version of the midi already exists, load data from it
+                midi_txt_name = midi_dir + "/" + midi_name + ".txt"
+                if(os.path.isfile(midi_txt_name)):
+                    midi_fp = open(midi_txt_name, "r")
+                    midi_content = midi_fp.read()
+                else:
+                    # Create a music21 stream and open the midi file
+                    midi = m21.midi.MidiFile()
 
-                # Translate midi to stream of notes and chords
-                midi_content = self.midi2encoding(midi)
-                midi_name = midipath.split("/")[-1]
+                    try:
+                        midi.open(midipath)
+                        midi.read()
+                        midi.close()
+                    except:
+                        print("Skipping file: Midi file has bad formatting")
+                        continue
 
-                vocab = vocab | set(midi_content)
-                encoded_midi.append((midi, midi_name))
+                    # Translate midi to stream of notes and chords
+                    midi_content = self.midi2encoding(midi)
+
+                    midi_fp = open(midi_txt_name, "w+")
+                    midi_fp.write(midi_content);
+                    midi_fp.flush();
+
+                encoded_midi.append((midi_fp, midi_name + ".mid"))
+                vocab = vocab | set(midi_content.split(" "))
 
         return encoded_midi, vocab
 
@@ -53,10 +66,11 @@ class EncoderMidi(Encoder):
 
     def decode(self, ixs):
         # Create piano roll and return it
-        return np.array([self.ix_to_symbol[ix] for ix in ixs])
+        return " ".join(self.ix_to_symbol[ix] for ix in ixs)
 
-    def read(self, midi):
-        return self.midi2encoding(midi)
+    def read(self, file):
+        file.seek(0);
+        return file.read().split(" ")
 
     def write(self, encoded_midi, path):
         # Base class checks if output path exists
@@ -127,24 +141,22 @@ class EncoderMidi(Encoder):
         notes += self.midi_parse_notes(midi_stream, sample_freq)
         notes += self.midi_parse_chords(midi_stream, sample_freq)
 
-        # Parse the midi file into a list of metronome events (time, offset)
-        time_events = None
-        if add_perform:
-            time_events = self.midi_parse_metronome(midi_stream, sample_freq)
-
-        # Create piano roll from the list of notes
+        # Calculate the amount of time steps in the piano roll
         time_steps = ma.floor(midi_stream.duration.quarterLength * sample_freq) + 1
-        piano_roll = self.notes2piano_roll(notes, time_steps, piano_range, time_events)
 
-        return piano_roll
+        # Modulate the notes to all the
+        notes = self.modulate_notes(notes, modulate_range, time_steps)
 
-    def notes2piano_roll(self, notes, time_steps, piano_range, time_events=None):
-        if time_events is None:
-            piano_roll = np.zeros((time_steps, piano_range))
-        else:
-            # Increment range by one to store time events
-            piano_range += 1
-            piano_roll = np.zeros((time_steps, piano_range, 2))
+        if not add_perform:
+            return self.notes2piano_roll(notes, time_steps * modulate_range, piano_range)
+
+        time_events = self.midi_parse_metronome(midi_stream, sample_freq)
+        time_events = self.modulate_times(time_events, modulate_range, time_steps)
+
+        return self.notes2piano_roll_with_performance(notes, time_steps * modulate_range, piano_range, time_events)
+
+    def notes2piano_roll(self, notes, time_steps, piano_range):
+        piano_roll = np.zeros((time_steps, piano_range))
 
         for n in notes:
             pitch, duration, velocity, offset = n
@@ -155,37 +167,56 @@ class EncoderMidi(Encoder):
             while pitch >= piano_range:
                 pitch -= 12
 
-            if time_events is None:
-                piano_roll[offset, pitch] = 1
-            else:
-                piano_roll[offset, pitch][0] = duration
-                piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
-
-                for t in time_events:
-                    time, offset = t
-                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
+            piano_roll[offset, pitch] = 1
 
         return piano_roll
 
-    def modulate_piano_roll(self, piano_roll, modulate_range=1):
-        modulated_piano_rolls = []
+    def notes2piano_roll_with_performance(self, notes, time_steps, piano_range, time_events):
+        # Add one dimension to very entry to store velocity and duration
+        piano_roll = np.zeros((time_steps, piano_range + 1, 2))
+
+        for n in notes:
+            pitch, duration, velocity, offset = n
+
+            # Force notes to be inside the specified piano_range
+            while pitch < 0:
+                pitch += 12
+            while pitch >= piano_range:
+                pitch -= 12
+
+            piano_roll[offset, pitch][0] = duration
+            piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
+
+            for t in time_events:
+                time, offset = t
+                piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
+
+        return piano_roll
+
+    def modulate_notes(self, notes, modulate_range, time_steps):
+        modulations = []
 
         # Modulate the piano_roll for other keys
         for key in range(0, modulate_range):
-            modulated = []
-            note_range = len(piano_roll[0]) - 1
+            for n in notes:
+                pitch, duration, velocity, offset = n
+                modulations.append((pitch + key, duration, velocity, offset + key * time_steps))
 
-            for ts in piano_roll:
-                ts_str = self.ts2str(ts[1:])
-                padded = '000000' + ts_str[1:] + '000000'
-                modulated.append(self.str2ts(ts_str[0] + padded[key:key + note_range]))
+        return modulations
 
-            modulated_piano_rolls.append(modulated)
+    def modulate_times(self, time_events, modulate_range, time_steps):
+        modulations = []
 
-        return modulated_piano_rolls
+        # Modulate the piano_roll for other keys
+        for key in range(0, modulate_range):
+            for t in time_events:
+                time, offset = t
+                modulations.append((time, offset + key * time_steps))
+
+        return modulations
 
     def ts2str(self, ts):
-        return "".join(str(t) for t in ts)
+        return "".join(str(int(t)) for t in ts)
 
     def str2ts(self, s):
         return [int(ch) for ch in s]

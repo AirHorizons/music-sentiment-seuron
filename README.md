@@ -5,13 +5,11 @@ currently supports text and midi sequences.
 
 # Installing
 
+```
 $ pip install sentneuron
+```
 
-For running the interactive sampler, also install the following dependecies: Flask
-
-$ pip install flask
-
-# Running examples
+# Examples
 
 This projects comes with two test scripts: one for training a new model and one for loading
 pre-trained models. Both scripts have an example of sampling sequences from the models.
@@ -23,4 +21,15 @@ After training, this script stores the model inside the "trained_models/" folder
 then load it and sample sequences (either midi or text) using the following example:
 
 To load a pre-trainned model:
+
+```
 $ python examples/load_generative.py
+```
+
+# Interactive
+
+For running the interactive sampler, you will need to install the following dependecies: Flask
+
+```
+$ pip install flask
+```

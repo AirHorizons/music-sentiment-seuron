@@ -24,8 +24,6 @@ class EncoderText(Encoder):
                 vocab = vocab | set(txt_content)
                 encoded_text.append((txt, txt_name))
 
-                txt.seek(0)
-
         return encoded_text, vocab
 
     def type(self):
@@ -35,6 +33,7 @@ class EncoderText(Encoder):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)
 
     def read(self, file):
+        file.seek(0);
         return file.read()
 
     def write(self, text, path):

@@ -77,6 +77,8 @@ def generate(sample_init, sample_len):
     sample = neuron.sample(seq_data, sample_init=sample_init, sample_len=sample_len)
     seq_data.write(sample, "../../samples/beethoven_mond")
 
+    sample = sample.split(" ")
+
     for i in range(len(sample)):
         if sample[i][0] == "d":
             # Replace duration type to number to easily play with tone.js

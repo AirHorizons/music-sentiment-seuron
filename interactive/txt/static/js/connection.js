@@ -1,7 +1,7 @@
 
-function sendNoteSequence(noteSequence, genSequenceLen, generationCallback) {
+function sendNoteSequence(txtSequence, genSequenceLen, generationCallback) {
     var formData = new FormData();
-    formData.append("noteSequence", noteSequence);
+    formData.append("txtSequence", txtSequence);
     formData.append("genSequenceLen", genSequenceLen);
 
     var request = new XMLHttpRequest();
