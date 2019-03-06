@@ -30,7 +30,11 @@ class EncoderMidiPerform(EncoderMidi):
                     note_encoding.append("v_" + str(velocity))
 
                 if duration != 0 and duration != lastDuration:
-                    duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
+                    try:
+                        duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
+                    except:
+                        duration_type = "16th"
+
                     note_encoding.append("d_" + duration_type)
 
                 if duration != 0 and velocity != 0:
