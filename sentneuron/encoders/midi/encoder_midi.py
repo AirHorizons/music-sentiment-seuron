@@ -197,10 +197,14 @@ class EncoderMidi(Encoder):
         modulations = []
 
         # Modulate the piano_roll for other keys
-        for key in range(0, modulate_range):
+        first_key = -modulate_range//2
+        last_key  =  modulate_range//2
+        for key in range(first_key, last_key):
             for n in notes:
                 pitch, duration, velocity, offset = n
-                modulations.append((pitch + key, duration, velocity, offset + key * time_steps))
+                t_pitch = (pitch  + (key * 5))
+                t_offset = offset + (key + last_key) * time_steps
+                modulations.append((t_pitch, duration, velocity, t_offset))
 
         return modulations
 
@@ -214,12 +218,6 @@ class EncoderMidi(Encoder):
                 modulations.append((time, offset + key * time_steps))
 
         return modulations
-
-    def ts2str(self, ts):
-        return "".join(str(int(t)) for t in ts)
-
-    def str2ts(self, s):
-        return [int(ch) for ch in s]
 
     def discretize_value(self, val, bins, range):
         min_val, max_val = range

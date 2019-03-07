@@ -21,7 +21,7 @@ function setup() {
     isMainStarted  = false;
     isAIPlaying    = false;
 
-    genSequenceLen = 50;
+    genSequenceLen = 400;
 
     playingTimer    = 0;
     aiPlayingTimer  = 0;

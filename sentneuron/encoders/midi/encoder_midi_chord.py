@@ -7,7 +7,7 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiChord(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=1):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=128, modulate_range=1):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
@@ -45,6 +45,12 @@ class EncoderMidiChord(EncoderMidi):
         main_stream  = m21.stream.Stream([piano_stream])
 
         return m21.midi.translate.streamToMidiFile(main_stream)
+
+    def ts2str(self, ts):
+        return "".join(str(int(t)) for t in ts)
+
+    def str2ts(self, s):
+        return [int(ch) for ch in s]
 
     def type(self):
         return "midi_chord"

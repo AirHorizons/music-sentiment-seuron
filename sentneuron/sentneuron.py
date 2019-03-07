@@ -162,6 +162,7 @@ class SentimentNeuron(nn.Module):
 
     def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
+            print("Embedding Sequences.")
             train_xs, train_ys = sen_data.train
             for i in range(len(train_xs)):
                 train_xs[i] = self.__embed_sequence(seq_dataset, train_xs[i])
@@ -174,6 +175,7 @@ class SentimentNeuron(nn.Module):
             for i in range(len(test_xs)):
                 test_xs[i] = self.__embed_sequence(seq_dataset, test_xs[i])
 
+            print("Trainning sentiment classifier.")
             scores = []
             for i, c in enumerate(C):
                 model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")

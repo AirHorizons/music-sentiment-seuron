@@ -7,7 +7,7 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiNote(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=1):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=128, modulate_range=1):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:

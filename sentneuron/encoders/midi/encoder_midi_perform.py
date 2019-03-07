@@ -7,7 +7,7 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiPerform(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq=4, piano_range=88, modulate_range=12):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=128, modulate_range=12):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
@@ -49,6 +49,8 @@ class EncoderMidiPerform(EncoderMidi):
                 note_encoding.append("t_" + str(int(tempo_change)))
 
             note_encoding.append(".")
+
+        self.write(" ".join(note_encoding), "perform_test")
 
         return " ".join(note_encoding)
 
