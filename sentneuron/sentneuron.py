@@ -111,7 +111,7 @@ class SentimentNeuron(nn.Module):
                 n_batches = len(file_content)//seq_length
 
                 # Each epoch consists of one entire pass over the dataset
-                for batch_ix in range(n_batches):
+                for batch_ix in range(n_batches - 1):
                     # Reset optimizer grad
                     optimizer.zero_grad()
 
