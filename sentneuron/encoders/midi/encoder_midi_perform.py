@@ -50,8 +50,6 @@ class EncoderMidiPerform(EncoderMidi):
 
             note_encoding.append(".")
 
-        self.write(" ".join(note_encoding), "perform_test")
-
         return " ".join(note_encoding)
 
     def encoding2midi(self, note_encoding,  ts_duration=0.25):
