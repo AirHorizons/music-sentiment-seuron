@@ -15,7 +15,7 @@ parser.add_argument('-lr'         , type=float, default=5e-4 ,  help="Learning R
 opt = parser.parse_args()
 
 # Train a generative model to predict characters in a sequence
-neuron = sn.utils.train_generative_model(opt.data_path, opt.data_type, opt.embed_size, opt.hidden_size, opt.n_layers, opt.dropout, opt.epochs, opt.seq_length, opt.lr)
+neuron, seq_data = sn.utils.train_generative_model(opt.data_path, opt.data_type, opt.embed_size, opt.hidden_size, opt.n_layers, opt.dropout, opt.epochs, opt.seq_length, opt.lr)
 
 # Save trainned model for sampleing
 dataset_name = opt.data_path.split("/")[-1]
