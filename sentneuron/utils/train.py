@@ -50,7 +50,7 @@ def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1,
 
 def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
     if(os.path.isfile(xs_filename)):
-        xs = np.load(xs_filename)
+        xs = np.squeeze(np.load(xs_filename))
     else:
         for i in range(len(xs)):
             xs[i] = neuron.transform_sequence(seq_data, xs[i])
@@ -75,7 +75,9 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path):
     teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
 
     # Running sentiment analysis
+    print("Trainning sentiment classifier.")
     full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
+
     print('%05.3f Test accuracy' % full_rep_acc)
     print('%05.3f Regularization coef' % c)
     print('%05d Features used' % n_not_zero)

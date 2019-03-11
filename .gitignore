@@ -7,3 +7,4 @@ output/*.mid
 trained_models/*.json
 trained_models/*.pth
 trained_models/*.txt
+*.npy

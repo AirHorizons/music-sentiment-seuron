@@ -162,26 +162,24 @@ class SentimentNeuron(nn.Module):
 
     def fit_sentiment(self, trX, trY, vaX, vaY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
-            print("Trainning sentiment classifier.")
             scores = []
             for i, c in enumerate(C):
-                model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
-                model.fit(trX, trY)
+                logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
+                logreg_model.fit(trX, trY)
 
-                score = model.score(vaX, vaY)
+                score = logreg_model.score(vaX, vaY)
                 scores.append(score)
 
             c = C[np.argmax(scores)]
 
-            model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
-            model.fit(trX, trY)
-            score = model.score(teX, teY) * 100.
+            logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
+            logreg_model.fit(trX, trY)
+            score = logreg_model.score(teX, teY) * 100.
 
-            print(model.coef_)
-            n_not_zero = np.sum(model.coef_ != 0.)
-            return score, c, n_not_zero, model
+            n_not_zero = np.sum(logreg_model.coef_ != 0.)
+            return score, c, n_not_zero, logreg_model
 
-    def get_top_k_neuron_weights(model, k=1):
+    def get_top_k_neuron_weights(self, logreg_model, k=1):
         """
         Get's the indices of the top weights based on the l1 norm contributions of the weights
         based off of https://rakeshchada.github.io/Sentiment-Neuron.html interpretation of
@@ -192,7 +190,7 @@ class SentimentNeuron(nn.Module):
         Returns:
             k_indices: numpy arraylike of shape `[k]` specifying indices of the top k rows
         """
-        weights = model.coef_.T
+        weights = logreg_model.coef_.T
         weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
 
         if k == 1:
@@ -251,7 +249,7 @@ class SentimentNeuron(nn.Module):
                     pass
 
             hidden, cell = hidden_cell
-            return cell.data.cpu().numpy()
+            return np.squeeze(cell.data.cpu().numpy())
 
     def load(self, model_filename):
         print("Loading model:", model_filename)
