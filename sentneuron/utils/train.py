@@ -1,3 +1,4 @@
+import os
 import json
 import sentneuron as sn
 
@@ -45,21 +46,31 @@ def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1,
 
     return neuron, seq_data
 
-def train_sentiment_analysis(neuron, seq_data, sen_data):
+def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
+    if(os.path.isfile(xs_filename)):
+        xs = np.load(xs_filename)
+    else:
+        for i in range(len(xs)):
+            xs[i] = neuron.transform_sequence(seq_data, xs[i])
+        np.save(xs_filename, xs)
+
+    return xs
+
+def train_sentiment_analysis(neuron, seq_data, sent_data_path):
+    # Load sentiment data from given path
+    sent_data = sn.encoders.SentimentData(sent_data_path, "sentence", "label")
+
     print("Embedding Trainning Sequences.")
-    trX, trY = sen_data.train
-    for i in range(len(trX)):
-        trX[i] = neuron.transform_sequence(seq_data, trX[i])
+    trX, trY = sent_data.train
+    trX = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
 
     print("Embedding Validation Sequences.")
-    vaX, vaY = sen_data.validation
-    for i in range(len(validation_xs)):
-        vaX[i] = neuron.transform_sequence(seq_data, vaX[i])
+    vaX, vaY = sent_data.validation
+    vaX = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
 
     print("Embedding Test Sequences.")
-    teX, teY = sen_data.test
-    for i in range(len(test_xs)):
-        teX[i] = neuron.transform_sequence(seq_data, teX[i])
+    teX, teY = sent_data.test
+    teX = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
 
     # Running sentiment analysis
     full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trX, trY, vaX, vaY, teX, teY)
@@ -69,35 +80,3 @@ def train_sentiment_analysis(neuron, seq_data, sen_data):
 
     k_indices = neuron.get_top_k_neuron_weights(logreg_model)
     print(k_indices)
-
-def plot_logits(save_root, X, Y_pred, top_neurons):
-    """plot logits and save to appropriate experiment directory"""
-    save_root = os.path.join(save_root,'logit_vis')
-    if not os.path.exists(save_root):
-        os.makedirs(save_root)
-
-    print('plotting_logits at', save_root)
-
-    for i, n in enumerate(top_neurons):
-        plot_logit_and_save(trXt, trY, n, os.path.join(save_root, str(i)+'_'+str(n)))
-
-
-def plot_logit_and_save(logits, labels, logit_index, name):
-    """
-    Plots histogram (wrt to what label it is) of logit corresponding to logit_index.
-    Saves plotted histogram to name.
-    Args:
-        logits:
-        labels:
-        logit_index:
-        name:
-"""
-    logit = logits[:,logit_index]
-    plt.title('Distribution of Logit Values')
-    plt.ylabel('# of logits per bin')
-    plt.xlabel('Logit Value')
-    plt.hist(logit[labels < .5], bins=25, alpha=0.5, label='neg')
-    plt.hist(logit[labels >= .5], bins=25, alpha=0.5, label='pos')
-    plt.legend()
-    plt.savefig(name+'.png')
-    plt.clf()
