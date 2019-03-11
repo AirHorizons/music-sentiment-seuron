@@ -64,18 +64,18 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path):
 
     print("Embedding Trainning Sequences.")
     trX, trY = sent_data.train
-    trX = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
+    trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
 
     print("Embedding Validation Sequences.")
     vaX, vaY = sent_data.validation
-    vaX = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
+    vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
 
     print("Embedding Test Sequences.")
     teX, teY = sent_data.test
-    teX = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
+    teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
 
     # Running sentiment analysis
-    full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trX, trY, vaX, vaY, teX, teY)
+    full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
     print('%05.3f Test accuracy' % full_rep_acc)
     print('%05.3f Regularization coef' % c)
     print('%05d Features used' % n_not_zero)

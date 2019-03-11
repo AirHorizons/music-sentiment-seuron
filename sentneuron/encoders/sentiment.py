@@ -16,7 +16,7 @@ class SentimentData:
         Y = []
         for row in data:
             X.append(self.preprocess(row[x_col_name]))
-            Y.append(int(row[y_col_name]))
+            Y.append(row[y_col_name])
 
         if slice is not None:
             slice_start, slice_end = slice
