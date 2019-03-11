@@ -1,5 +1,7 @@
 import os
 import json
+
+import numpy      as np
 import sentneuron as sn
 
 def create_data_with_type(data, data_type, pre_loaded):
