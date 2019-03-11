@@ -62,20 +62,20 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path):
     # Load sentiment data from given path
     sent_data = sn.encoders.SentimentData(sent_data_path, "sentence", "label")
 
-    print("Embedding Trainning Sequences.")
+    print("Transforming Trainning Sequences.")
     trX, trY = sent_data.train
     trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
 
-    print("Embedding Validation Sequences.")
+    print("Transforming Validation Sequences.")
     vaX, vaY = sent_data.validation
     vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
 
-    print("Embedding Test Sequences.")
+    print("Transforming Test Sequences.")
     teX, teY = sent_data.test
     teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
 
     # Running sentiment analysis
-    print("Trainning sentiment classifier.")
+    print("Trainning sentiment classifier with transformed sequences.")
     full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
 
     print('%05.3f Test accuracy' % full_rep_acc)
@@ -83,4 +83,4 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path):
     print('%05d Features used' % n_not_zero)
 
     k_indices = neuron.get_top_k_neuron_weights(logreg_model)
-    print(k_indices)
+    print("Top neuron:", k_indices)
