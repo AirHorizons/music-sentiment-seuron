@@ -160,44 +160,50 @@ class SentimentNeuron(nn.Module):
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
 
-    def fit_sentiment(self, seq_dataset, sen_data, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
+    def fit_sentiment(self, trX, trY, vaX, vaY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
-            print("Embedding Trainning Sequences.")
-            train_xs, train_ys = sen_data.train
-            for i in range(len(train_xs)):
-                print("\t " + train_xs[i])
-                train_xs[i] = self.__embed_sequence(seq_dataset, train_xs[i])
-
-            print("Embedding Validation Sequences.")
-            validation_xs, validation_ys = sen_data.validation
-            for i in range(len(validation_xs)):
-                print("\t " + validation_xs[i])
-                validation_xs[i] = self.__embed_sequence(seq_dataset, validation_xs[i])
-
-            print("Embedding Test Sequences.")
-            test_xs, test_ys = sen_data.test
-            for i in range(len(test_xs)):
-                print("\t " + test_xs[i])
-                test_xs[i] = self.__embed_sequence(seq_dataset, test_xs[i])
-
             print("Trainning sentiment classifier.")
             scores = []
             for i, c in enumerate(C):
                 model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
-                model.fit(train_xs, train_ys)
+                model.fit(trX, trY)
 
-                score = model.score(validation_xs, validation_ys)
+                score = model.score(vaX, vaY)
                 scores.append(score)
 
             c = C[np.argmax(scores)]
 
             model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
-            model.fit(train_xs, train_ys)
-            score = model.score(test_xs, test_ys) * 100.
+            model.fit(trX, trY)
+            score = model.score(teX, teY) * 100.
 
             print(model.coef_)
             n_not_zero = np.sum(model.coef_ != 0.)
-            return score, c, n_not_zero
+            return score, c, n_not_zero, model
+
+    def get_top_k_neuron_weights(model, k=1):
+        """
+        Get's the indices of the top weights based on the l1 norm contributions of the weights
+        based off of https://rakeshchada.github.io/Sentiment-Neuron.html interpretation of
+        https://arxiv.org/pdf/1704.01444.pdf (Radford et. al)
+        Args:
+            weights: numpy arraylike of shape `[d,num_classes]`
+            k: integer specifying how many rows of weights to select
+        Returns:
+            k_indices: numpy arraylike of shape `[k]` specifying indices of the top k rows
+        """
+        weights = model.coef_.T
+        weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+        if k == 1:
+            k_indices = np.array([np.argmax(weight_penalties)])
+        elif k >= np.log(len(weight_penalties)):
+            k_indices = np.argsort(weight_penalties)[-k:][::-1]
+        else:
+            k_indices = np.argpartition(weight_penalties, -k)[-k:]
+            k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
+
+        return k_indices
 
     def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
         with torch.no_grad():
@@ -231,6 +237,21 @@ class SentimentNeuron(nn.Module):
                 seq.append(x)
 
             return seq_dataset.decode(seq)
+
+    def transform_sequence(self, seq_dataset, sequence):
+        with torch.no_grad():
+            hidden_cell = self.__init_hidden()
+
+            for element in sequence:
+                try:
+                    x = seq_dataset.encode(element)
+                    tensor_x = torch.tensor(x, dtype=torch.long, device=self.device)
+                    hidden_cell, y = self.forward(tensor_x, hidden_cell)
+                except KeyError as e:
+                    pass
+
+            hidden, cell = hidden_cell
+            return cell.data.cpu().numpy()
 
     def load(self, model_filename):
         print("Loading model:", model_filename)
@@ -269,19 +290,3 @@ class SentimentNeuron(nn.Module):
         totalnorm = 0
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
-
-    def __embed_sequence(self, seq_dataset, sequence):
-        with torch.no_grad():
-            hidden = self.__init_hidden()
-
-            for element in sequence:
-                try:
-                    x = seq_dataset.encode(element)
-                    tensor_x = torch.tensor(x, dtype=torch.long, device=self.device)
-                    hidden, y = self.forward(tensor_x, hidden)
-                except KeyError as e:
-                    pass
-
-            h, c = hidden
-
-            return torch.tanh(c[0][0]).tolist()

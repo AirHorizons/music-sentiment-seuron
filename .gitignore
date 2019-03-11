@@ -2,4 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-output/*
+output/*.txt
+output/*.mid
+trained_models/*.json
+trained_models/*.pth
+trained_models/*.txt
