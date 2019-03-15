@@ -29,6 +29,9 @@ class EncoderText(Encoder):
     def type(self):
         return "txt"
 
+    def str2symbols(self, s):
+        return s
+
     def decode(self, ixs):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)
 

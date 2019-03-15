@@ -81,34 +81,36 @@ class SentimentNeuron(nn.Module):
 
         return (h_1, c_1), y
 
-    def fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, grad_clip=5):
+    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
         try:
-            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip)
+            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
-    def __fit_sequence(self, seq_dataset, epochs=100000, seq_length=100, lr=1e-3, lr_decay=0.7, grad_clip=5):
+    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
         # Optimizer
-        optimizer = optim.SGD(self.parameters(),  lr=lr)
+        optimizer = optim.Adam(self.parameters(),  lr=lr)
 
         # Loss at epoch 0
         smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
 
         for epoch in range(epochs):
-            h_init = self.__init_hidden()
-
             # Iterate on each data file of the dataset
-            for data_file in seq_dataset.data:
-                f, filename = data_file
+            for shard in seq_dataset.data:
+                h_init = self.__init_hidden(batch_size)
 
                 # Use file pointer to read file content
-                file_content = seq_dataset.read(f)
+                fp, filename = shard
+                shard_content = seq_dataset.read(fp)
 
-                # Calculate batch size
-                n_batches = len(file_content)//seq_length
+                # Batchify file content
+                sequence = seq_dataset.encode_sequence(shard_content)
+                sequence = self.__batchify_sequence(torch.ByteTensor(sequence), batch_size)
+
+                n_batches = sequence.size(0)//seq_length
 
                 # Each epoch consists of one entire pass over the dataset
                 for batch_ix in range(n_batches - 1):
@@ -116,21 +118,16 @@ class SentimentNeuron(nn.Module):
                     optimizer.zero_grad()
 
                     # Slice the dataset to create the current batch
-                    batch = seq_dataset.slice(file_content, batch_ix * seq_length, seq_length + 1)
+                    batch = ag.Variable(sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long())
 
                     # Initialize hidden state with the hidden state from the previous batch
                     h = h_init
 
                     loss = 0
                     for t in range(seq_length):
-                        # Run forward pass and get output y
-                        batch_tensor_x = torch.tensor(batch[t], dtype=torch.long, device=self.device)
-                        h, y = self(batch_tensor_x, h)
-
-                        # Calculate loss in respect to the target ts
-                        batch_tensor_t = torch.tensor([batch[t+1]], dtype=torch.long, device=self.device)
-                        loss += loss_function(y, batch_tensor_t)
-
+                        # Run forward pass, get output y and calculate loss in respect to target batch[t+1]
+                        h, y = self(batch[t], h)
+                        loss += loss_function(y, batch[t+1])
                     loss.backward()
 
                     # Copy current hidden state to be next h_init
@@ -144,7 +141,8 @@ class SentimentNeuron(nn.Module):
 
                     # Calculate average loss and log the results of this batch
                     smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                    self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, file_content)
+                    if batch_ix % 10 == 0:
+                        self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, shard_content)
 
             # Apply learning rate decay before the next epoch
             lr *= lr_decay
@@ -152,13 +150,29 @@ class SentimentNeuron(nn.Module):
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
-            sample_dat = self.sample(seq_dataset, data[i_init:i_end], sample_len=200)
+            sample_dat = self.generate_sequence(seq_dataset, data[i_init:i_end], sample_len=200)
 
             print('epoch:', epoch)
             print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
             print('loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
+
+    def __batchify_sequence(self, sequence, batch_size=1):
+        n_batch = sequence.size(0) // batch_size
+        sequence = sequence.narrow(0, 0, n_batch * batch_size)
+        sequence = sequence.view(batch_size, -1).t().contiguous()
+        return sequence
+
+    def __init_hidden(self, batch_size=1):
+        h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
+        c = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
+        return (h, c)
+
+    def __clip_gradient(self, clip):
+        totalnorm = 0
+        for p in self.parameters():
+            p.grad.data = p.grad.data.clamp(-clip, clip)
 
     def fit_sentiment(self, trX, trY, vaX, vaY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
@@ -179,51 +193,33 @@ class SentimentNeuron(nn.Module):
             n_not_zero = np.sum(logreg_model.coef_ != 0.)
             return score, c, n_not_zero, logreg_model
 
-    def get_top_k_neuron_weights(self, logreg_model, k=1):
-        """
-        Get's the indices of the top weights based on the l1 norm contributions of the weights
-        based off of https://rakeshchada.github.io/Sentiment-Neuron.html interpretation of
-        https://arxiv.org/pdf/1704.01444.pdf (Radford et. al)
-        Args:
-            weights: numpy arraylike of shape `[d,num_classes]`
-            k: integer specifying how many rows of weights to select
-        Returns:
-            k_indices: numpy arraylike of shape `[k]` specifying indices of the top k rows
-        """
-        weights = logreg_model.coef_.T
-        weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
-
-        if k == 1:
-            k_indices = np.array([np.argmax(weight_penalties)])
-        elif k >= np.log(len(weight_penalties)):
-            k_indices = np.argsort(weight_penalties)[-k:][::-1]
-        else:
-            k_indices = np.argpartition(weight_penalties, -k)[-k:]
-            k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
-
-        return k_indices
-
-    def sample(self, seq_dataset, sample_init, sample_len, temperature=0.4):
+    def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=0.4, override={}):
         with torch.no_grad():
-            # Retrieve a random example from the dataset as the first element of the sequence
-            xs = []
-            for symb in sample_init:
-                try:
-                    xs.append(seq_dataset.encode(symb))
-                except KeyError:
-                    print("Symbol " + symb + " can't be encoded.")
-
             # Initialize the sequence
             seq = []
 
             # Create a new hidden state
-            h = self.__init_hidden()
-            for x in xs:
-                h, y = self.forward(torch.tensor(x, dtype=torch.long, device=self.device), h)
+            hidden_cell = self.__init_hidden()
+
+            xs = seq_dataset.encode_sequence(sample_init)
+            xs = self.__batchify_sequence(torch.LongTensor(xs))
+
+            batch = ag.Variable(xs)
+
+            for t in range(xs.size(0)):
+                hidden_cell, y = self.forward(batch[t], hidden_cell)
+                x = batch[t].data[0].item()
                 seq.append(x)
 
             for t in range(sample_len):
-                h, y = self.forward(torch.tensor(x, dtype=torch.long, device=self.device), h)
+                # Override salient neurons
+                hidden, cell = hidden_cell
+                for neuron, value in override.items():
+                    hidden[:, :, neuron] = value
+                hidden_cell = (hidden, cell)
+
+                x = ag.Variable(torch.LongTensor([x]))
+                hidden_cell, y = self.forward(x, hidden_cell)
 
                 # Transform output into a probability distribution
                 ps = torch.softmax(y[0].squeeze().div(temperature), dim=0)
@@ -240,16 +236,36 @@ class SentimentNeuron(nn.Module):
         with torch.no_grad():
             hidden_cell = self.__init_hidden()
 
+            outputs = []
             for element in sequence:
                 try:
                     x = seq_dataset.encode(element)
                     tensor_x = torch.tensor(x, dtype=torch.long, device=self.device)
                     hidden_cell, y = self.forward(tensor_x, hidden_cell)
+                    outputs.append(y)
                 except KeyError as e:
                     pass
 
             hidden, cell = hidden_cell
-            return np.squeeze(cell.data.cpu().numpy())
+
+            # Use cell state as feature vector fot the sentence
+            trans_sequence = np.squeeze(cell.data.cpu().numpy())
+
+            return trans_sequence, outputs
+
+    def get_top_k_neuron_weights(self, logreg_model, k=1):
+        weights = logreg_model.coef_.T
+        weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+        if k == 1:
+            k_indices = np.array([np.argmax(weight_penalties)])
+        elif k >= np.log(len(weight_penalties)):
+            k_indices = np.argsort(weight_penalties)[-k:][::-1]
+        else:
+            k_indices = np.argpartition(weight_penalties, -k)[-k:]
+            k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
+
+        return k_indices
 
     def load(self, model_filename):
         print("Loading model:", model_filename)
@@ -278,13 +294,3 @@ class SentimentNeuron(nn.Module):
             json.dump(meta_data, fp)
 
         print("Saved model:", model_filename)
-
-    def __init_hidden(self, batch_size=1):
-        h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
-        c = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
-        return (h, c)
-
-    def __clip_gradient(self, clip):
-        totalnorm = 0
-        for p in self.parameters():
-            p.grad.data = p.grad.data.clamp(-clip, clip)

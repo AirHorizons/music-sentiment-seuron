@@ -79,6 +79,9 @@ class EncoderMidi(Encoder):
         midi.write()
         midi.close()
 
+    def str2symbols(self, s):
+        return s.split(" ")
+
     def midi_parse_notes(self, midi_stream, sample_freq):
         note_filter = m21.stream.filters.ClassFilter('Note')
 
@@ -135,89 +138,116 @@ class EncoderMidi(Encoder):
 
         return events
 
-    def midi2piano_roll(self, midi_stream, sample_freq, piano_range, modulate_range, add_perform=False):
-        # Parse the midi file into a list of notes (pitch, duration, velocity, offset)
+    def midi2notes(self, midi_stream, sample_freq, modulate_range):
         notes = []
         notes += self.midi_parse_notes(midi_stream, sample_freq)
         notes += self.midi_parse_chords(midi_stream, sample_freq)
 
+        # Transpose the notes to all the
+        transpositions = self.transpose_notes(notes, modulate_range)
+        return transpositions
+
+    def midi2piano_roll(self, midi_stream, sample_freq, piano_range, modulate_range):
         # Calculate the amount of time steps in the piano roll
         time_steps = ma.floor(midi_stream.duration.quarterLength * sample_freq) + 1
 
-        # Modulate the notes to all the
-        notes = self.modulate_notes(notes, modulate_range, time_steps)
+        # Parse the midi file into a list of notes (pitch, duration, velocity, offset)
+        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_rang)
+        return self.notes2piano_roll(transpositions, time_steps, piano_range)
 
-        if not add_perform:
-            return self.notes2piano_roll(notes, time_steps * modulate_range, piano_range)
+    def midi2piano_roll_with_performance(self, midi_stream, sample_freq, piano_range, modulate_range, stretching_range):
+        # Calculate the amount of time steps in the piano roll
+        time_steps = ma.floor(midi_stream.duration.quarterLength * sample_freq) + 1
+
+        # Parse the midi file into a list of notes (pitch, duration, velocity, offset)
+        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_range)
 
         time_events = self.midi_parse_metronome(midi_stream, sample_freq)
-        time_events = self.modulate_times(time_events, modulate_range, time_steps)
+        time_streches = self.strech_time(time_events, stretching_range)
 
-        return self.notes2piano_roll_with_performance(notes, time_steps * modulate_range, piano_range, time_events)
+        return self.notes2piano_roll_with_performance(transpositions, time_streches, time_steps, piano_range)
 
-    def notes2piano_roll(self, notes, time_steps, piano_range):
+    def notes2piano_roll(self, transpositions, time_steps, piano_range):
         piano_roll = np.zeros((time_steps, piano_range))
 
-        for n in notes:
-            pitch, duration, velocity, offset = n
+        for notes_in_key in transpositions:
+            for n in notes_in_key:
+                pitch, duration, velocity, offset = n
 
-            # Force notes to be inside the specified piano_range
-            while pitch < 0:
-                pitch += 12
-            while pitch >= piano_range:
-                pitch -= 12
+                # Force notes to be inside the specified piano_range
+                while pitch < 0:
+                    pitch += 12
+                while pitch >= piano_range:
+                    pitch -= 12
 
-            piano_roll[offset, pitch] = 1
+                piano_roll[offset, pitch] = 1
 
         return piano_roll
 
-    def notes2piano_roll_with_performance(self, notes, time_steps, piano_range, time_events):
+    def notes2piano_roll_with_performance(self, transpositions, time_streches, time_steps, piano_range):
+        n_tr = len(transpositions)
+        n_st = len(time_streches)
+
         # Add one dimension to very entry to store velocity and duration
-        piano_roll = np.zeros((time_steps, piano_range + 1, 2))
+        piano_roll = np.zeros((n_tr * n_st * time_steps, piano_range + 1, 2))
 
-        for n in notes:
-            pitch, duration, velocity, offset = n
+        for t_ix in range(n_tr):
+            for s_ix in range(n_st):
+                for note in transpositions[t_ix]:
+                    pitch, duration, velocity, offset = note
 
-            # Force notes to be inside the specified piano_range
-            while pitch < 0:
-                pitch += 12
-            while pitch >= piano_range:
-                pitch -= 12
+                    # Force notes to be inside the specified piano_range
+                    while pitch < 0:
+                        pitch += 12
+                    while pitch >= piano_range:
+                        pitch -= 12
 
-            piano_roll[offset, pitch][0] = duration
-            piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
+                    offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
+                    piano_roll[offset_shift, pitch][0] = duration
+                    piano_roll[offset_shift, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
 
-            for t in time_events:
-                time, offset = t
-                piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
+                for time_event in time_streches[s_ix]:
+                    time, offset = time_event
+
+                    offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
+                    piano_roll[offset_shift, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
 
         return piano_roll
 
-    def modulate_notes(self, notes, modulate_range, time_steps):
-        modulations = []
+    def transpose_notes(self, notes, modulate_range):
+        transpositions = []
 
         # Modulate the piano_roll for other keys
-        first_key = -modulate_range//2
-        last_key  =  modulate_range//2
+        first_key = -ma.floor(modulate_range/2)
+        last_key  =  ma.ceil(modulate_range/2)
+
         for key in range(first_key, last_key):
+            notes_in_key = []
             for n in notes:
                 pitch, duration, velocity, offset = n
-                t_pitch = (pitch  + (key * 5))
-                t_offset = offset + (key + last_key) * time_steps
-                modulations.append((t_pitch, duration, velocity, t_offset))
+                t_pitch = pitch + key
+                notes_in_key.append((t_pitch, duration, velocity, offset))
+            transpositions.append(notes_in_key)
 
-        return modulations
+        return transpositions
 
-    def modulate_times(self, time_events, modulate_range, time_steps):
-        modulations = []
+    def strech_time(self, time_events, stretching_range):
+        streches = []
 
         # Modulate the piano_roll for other keys
-        for key in range(0, modulate_range):
-            for t in time_events:
-                time, offset = t
-                modulations.append((time, offset + key * time_steps))
+        slower_time = -ma.floor(stretching_range/2)
+        faster_time =  ma.ceil(stretching_range/2)
 
-        return modulations
+        # Modulate the piano_roll for other keys
+        for t_strech in range(slower_time, faster_time):
+            time_events_in_strech = []
+            for t_ev in time_events:
+                time, offset = t_ev
+                s_time = time + 0.1 * t_strech * time
+                time_events_in_strech.append((s_time, offset))
+            streches.append(time_events_in_strech)
+
+        return streches
 
     def discretize_value(self, val, bins, range):
         min_val, max_val = range

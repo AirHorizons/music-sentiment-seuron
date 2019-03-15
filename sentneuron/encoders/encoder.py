@@ -45,8 +45,15 @@ class Encoder(ABC):
     def write(self, data, path):
         pass
 
+    @abstractmethod
+    def str2symbols(self, s):
+        pass
+
     def slice(self, data, i, length):
         return [self.encode(ts) for ts in data[i:i+length]]
+
+    def encode_sequence(self, sequence):
+        return [self.encode(ts) for ts in sequence]
 
     def encode(self, symb):
         return self.symbol_to_ix[symb]

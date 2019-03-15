@@ -13,8 +13,8 @@ opt = parser.parse_args()
 neuron, seq_data = sn.utils.load_generative_model(opt.model_path)
 
 # Sampling
-sample = neuron.sample(seq_data, opt.seq_init.split(" "), opt.seq_length, opt.temp)
+sample = neuron.generate_sequence(seq_data, seq_data.str2symbols(opt.seq_init), opt.seq_length, opt.temp)
 
 # Writing sampled sequence
 dataset_name = opt.model_path.split("/")[-1]
-seq_data.write(sample, "../samples/" + dataset_name)
+seq_data.write(sample, "../output/" + dataset_name)

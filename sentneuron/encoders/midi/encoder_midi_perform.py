@@ -7,14 +7,14 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiPerform(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq=4, piano_range=128, modulate_range=12):
+    def midi2encoding(self, midi, sample_freq=4, piano_range=128, modulate_range=10, stretching_range=10):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
             return []
 
         # Get piano roll from midi stream
-        piano_roll = self.midi2piano_roll(midi_stream, sample_freq, piano_range, modulate_range, add_perform=True)
+        piano_roll = self.midi2piano_roll_with_performance(midi_stream, sample_freq, piano_range, modulate_range, stretching_range)
 
         # Transform piano roll into a list of notes in string format
         lastVelocity = -1

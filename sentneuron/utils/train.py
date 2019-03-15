@@ -4,6 +4,9 @@ import json
 import numpy      as np
 import sentneuron as sn
 
+# Local imports
+from .plot import *
+
 def create_data_with_type(data, data_type, pre_loaded):
     seq_data = None
 
@@ -53,12 +56,12 @@ def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
         xs = np.squeeze(np.load(xs_filename))
     else:
         for i in range(len(xs)):
-            xs[i] = neuron.transform_sequence(seq_data, xs[i])
+            xs[i], _ = neuron.transform_sequence(seq_data, xs[i])
         np.save(xs_filename, xs)
 
     return xs
 
-def train_sentiment_analysis(neuron, seq_data, sent_data_path):
+def train_sentiment_analysis(neuron, seq_data, sent_data_path, results_path):
     # Load sentiment data from given path
     sent_data = sn.encoders.SentimentData(sent_data_path, "sentence", "label")
 
@@ -82,5 +85,13 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path):
     print('%05.3f Regularization coef' % c)
     print('%05d Features used' % n_not_zero)
 
-    k_indices = neuron.get_top_k_neuron_weights(logreg_model)
-    print("Top neuron:", k_indices)
+    sentneuron_ix = neuron.get_top_k_neuron_weights(logreg_model)
+
+    plot_logits(results_path, trXt, np.array(trY), sentneuron_ix)
+    plot_weight_contribs_and_save(results_path, logreg_model.coef_)
+
+    return sentneuron_ix[0], logreg_model
+
+def get_neuron_values_for_a_sequence(neuron, seq_data, sequence, neuron_ix):
+    _ ,outputs = neuron.transform_sequence(seq_data, sequence)
+    neuron_values = np.array([np.array(vals).flatten() for vals in outputs[neuron_ix]])
