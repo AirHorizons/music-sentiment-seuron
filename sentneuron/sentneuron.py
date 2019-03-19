@@ -118,7 +118,7 @@ class SentimentNeuron(nn.Module):
                     optimizer.zero_grad()
 
                     # Slice the dataset to create the current batch
-                    batch = ag.Variable(sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long())
+                    batch = sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long()
 
                     # Initialize hidden state with the hidden state from the previous batch
                     h = h_init
