@@ -204,7 +204,7 @@ class SentimentNeuron(nn.Module):
             xs = seq_dataset.encode_sequence(sample_init)
             batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
 
-            for t in range(xs.size(0)):
+            for t in range(batch.size(0)):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
                 x = batch[t].data[0].item()
                 seq.append(x)
@@ -216,7 +216,7 @@ class SentimentNeuron(nn.Module):
                     hidden[:, :, neuron] = value
                 hidden_cell = (hidden, cell)
 
-                x = ag.Variable(torch.LongTensor([x]))
+                x = torch.tensor([x], dtype=torch.long, device=self.device)
                 hidden_cell, y = self.forward(x, hidden_cell)
 
                 # Transform output into a probability distribution
