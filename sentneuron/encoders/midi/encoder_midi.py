@@ -165,13 +165,14 @@ class EncoderMidi(Encoder):
         time_events = self.midi_parse_metronome(midi_stream, sample_freq)
         time_streches = self.strech_time(time_events, stretching_range)
 
-        return self.notes2piano_roll_with_performance(transpositions, time_streches, time_steps, piano_range)
+        return self.notes2piano_roll_performances(transpositions, time_streches, time_steps, piano_range)
 
     def notes2piano_roll(self, transpositions, time_steps, piano_range):
-        piano_roll = np.zeros((time_steps, piano_range))
+        scores = []
+        for t_ix in range(len(transpositions)):
 
-        for notes_in_key in transpositions:
-            for n in notes_in_key:
+            piano_roll = np.zeros((time_steps, piano_range))
+            for note in transpositions[t_ix]:
                 pitch, duration, velocity, offset = n
 
                 # Force notes to be inside the specified piano_range
@@ -182,17 +183,17 @@ class EncoderMidi(Encoder):
 
                 piano_roll[offset, pitch] = 1
 
+            scores.append(piano_roll)
+
         return piano_roll
 
-    def notes2piano_roll_with_performance(self, transpositions, time_streches, time_steps, piano_range):
-        n_tr = len(transpositions)
-        n_st = len(time_streches)
+    def notes2piano_roll_performances(self, transpositions, time_streches, time_steps, piano_range):
+        performances = []
+        for t_ix in range(len(transpositions)):
+            for s_ix in range(len(time_streches)):
+                # Add one dimension to very entry to store velocity and duration
+                piano_roll = np.zeros((time_steps, piano_range + 1, 2))
 
-        # Add one dimension to very entry to store velocity and duration
-        piano_roll = np.zeros((n_tr * n_st * time_steps, piano_range + 1, 2))
-
-        for t_ix in range(n_tr):
-            for s_ix in range(n_st):
                 for note in transpositions[t_ix]:
                     pitch, duration, velocity, offset = note
 
@@ -202,17 +203,17 @@ class EncoderMidi(Encoder):
                     while pitch >= piano_range:
                         pitch -= 12
 
-                    offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
-                    piano_roll[offset_shift, pitch][0] = duration
-                    piano_roll[offset_shift, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
+                    # offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
+                    piano_roll[offset, pitch][0] = duration
+                    piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
 
                 for time_event in time_streches[s_ix]:
                     time, offset = time_event
+                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
 
-                    offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
-                    piano_roll[offset_shift, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
+                performances.append(piano_roll)
 
-        return piano_roll
+        return performances
 
     def transpose_notes(self, notes, modulate_range):
         transpositions = []

@@ -92,13 +92,13 @@ class SentimentNeuron(nn.Module):
         loss_function = nn.CrossEntropyLoss()
 
         # Optimizer
-        optimizer = optim.Adam(self.parameters(),  lr=lr)
+        optimizer = optim.Adam(self.parameters(), lr=lr)
 
         # Loss at epoch 0
         smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
 
         for epoch in range(epochs):
-            # Iterate on each data file of the dataset
+            # Iterate on each shard of the dataset
             for shard in seq_dataset.data:
                 h_init = self.__init_hidden(batch_size)
 

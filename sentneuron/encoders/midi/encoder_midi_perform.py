@@ -14,43 +14,52 @@ class EncoderMidiPerform(EncoderMidi):
             return []
 
         # Get piano roll from midi stream
-        piano_roll = self.midi2piano_roll_with_performance(midi_stream, sample_freq, piano_range, modulate_range, stretching_range)
+        performances = self.midi2piano_roll_with_performance(midi_stream, sample_freq, piano_range, modulate_range, stretching_range)
 
         # Transform piano roll into a list of notes in string format
         lastVelocity = -1
         lastDuration = -1.0
 
-        note_encoding = []
-        for i in range(len(piano_roll)):
-            for j in range(len(piano_roll[i]) - 1):
-                duration = piano_roll[i,j][0]
-                velocity = int(piano_roll[i,j][1])
+        final_encoding = []
 
-                if velocity != 0 and velocity != lastVelocity:
-                    note_encoding.append("v_" + str(velocity))
+        perform_i = 0
+        for piano_roll in performances:
+            perform_encoding = []
+            for i in range(len(piano_roll)):
+                for j in range(len(piano_roll[i]) - 1):
+                    duration = piano_roll[i,j][0]
+                    velocity = int(piano_roll[i,j][1])
 
-                if duration != 0 and duration != lastDuration:
-                    try:
-                        duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
-                    except:
-                        duration_type = "16th"
+                    if velocity != 0 and velocity != lastVelocity:
+                        perform_encoding.append("v_" + str(velocity))
 
-                    note_encoding.append("d_" + duration_type)
+                    if duration != 0 and duration != lastDuration:
+                        try:
+                            duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
+                        except:
+                            duration_type = "16th"
 
-                if duration != 0 and velocity != 0:
-                    note_encoding.append("n_" + str(j))
+                        perform_encoding.append("d_" + duration_type)
 
-                lastVelocity = velocity
-                lastDuration = duration
+                    if duration != 0 and velocity != 0:
+                        perform_encoding.append("n_" + str(j))
 
-            # Time events are stored at the last row
-            tempo_change = piano_roll[i,-1][0]
-            if tempo_change != 0:
-                note_encoding.append("t_" + str(int(tempo_change)))
+                    lastVelocity = velocity
+                    lastDuration = duration
 
-            note_encoding.append(".")
+                # Time events are stored at the last row
+                tempo_change = piano_roll[i,-1][0]
+                if tempo_change != 0:
+                    perform_encoding.append("t_" + str(int(tempo_change)))
 
-        return " ".join(note_encoding)
+                perform_encoding.append(".")
+
+            final_encoding += perform_encoding
+            final_encoding.append("\n")
+
+            perform_i += 1
+
+        return " ".join(final_encoding)
 
     def encoding2midi(self, note_encoding,  ts_duration=0.25):
         notes = []
@@ -62,6 +71,9 @@ class EncoderMidiPerform(EncoderMidi):
         for note in note_encoding.split(" "):
             if note == ".":
                 ts += 1
+
+            elif note =="\n":
+                break
 
             elif note[0] == "n":
                 pitch    = int(note.split("_")[1])
