@@ -202,9 +202,7 @@ class SentimentNeuron(nn.Module):
             hidden_cell = self.__init_hidden()
 
             xs = seq_dataset.encode_sequence(sample_init)
-            xs = self.__batchify_sequence(torch.LongTensor(xs))
-
-            batch = ag.Variable(xs)
+            batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
 
             for t in range(xs.size(0)):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
