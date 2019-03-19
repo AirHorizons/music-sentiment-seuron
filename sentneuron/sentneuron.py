@@ -108,7 +108,7 @@ class SentimentNeuron(nn.Module):
 
                 # Batchify file content
                 sequence = seq_dataset.encode_sequence(shard_content)
-                sequence = self.__batchify_sequence(torch.ByteTensor(sequence), batch_size)
+                sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
 
                 n_batches = sequence.size(0)//seq_length
 
