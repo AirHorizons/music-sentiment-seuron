@@ -39,15 +39,15 @@ def load_generative_model(model_path):
 
     return neuron, seq_data
 
-def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=1000, seq_length=256, lr=5e-4):
+def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, lr_decay=0.7, grad_clip=5, batch_size=128):
     seq_data = create_data_with_type(data, data_type, pre_loaded=False)
 
     input_size  = seq_data.encoding_size
     output_size = seq_data.encoding_size
 
     # Training model for predicting elements in a sequence.
-    neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers=n_layers, dropout=dropout)
-    neuron.fit_sequence(seq_data, epochs=epochs, seq_length=seq_length, lr=lr)
+    neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
+    neuron.fit_sequence(seq_data, epochs, seq_length, lr, lr_decay, grad_clip, batch_size)
 
     return neuron, seq_data
 

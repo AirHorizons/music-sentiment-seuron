@@ -91,16 +91,19 @@ class SentimentNeuron(nn.Module):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
-        # Optimizer
-        optimizer = optim.Adam(self.parameters(), lr=lr)
-
         # Loss at epoch 0
         smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
 
         for epoch in range(epochs):
+            # Start optimizer with initial learning rate every epoch
+            epoch_lr = lr
+
             # Iterate on each shard of the dataset
             for shard in seq_dataset.data:
                 h_init = self.__init_hidden(batch_size)
+
+                # Start optimizer with initial learning rate every epoch
+                optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
 
                 # Use file pointer to read file content
                 fp, filename = shard
@@ -144,8 +147,8 @@ class SentimentNeuron(nn.Module):
                     if batch_ix % 10 == 0:
                         self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, shard_content)
 
-            # Apply learning rate decay before the next epoch
-            lr *= lr_decay
+                # Apply learning rate decay before the next epoch
+                epoch_lr *= lr_decay
 
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
@@ -170,7 +173,6 @@ class SentimentNeuron(nn.Module):
         return (h, c)
 
     def __clip_gradient(self, clip):
-        totalnorm = 0
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
 
