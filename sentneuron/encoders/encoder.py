@@ -54,7 +54,7 @@ class Encoder(ABC):
 
     def encode_sequence(self, sequence):
         encoded = []
-        for for ts in sequence:
+        for ts in sequence:
             try:
                 encoded.append(self.encode(ts))
             except:
