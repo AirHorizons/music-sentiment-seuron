@@ -53,7 +53,13 @@ class Encoder(ABC):
         return [self.encode(ts) for ts in data[i:i+length]]
 
     def encode_sequence(self, sequence):
-        return [self.encode(ts) for ts in sequence]
+        encoded = []
+        for for ts in sequence:
+            try:
+                encoded.append(self.encode(ts))
+            except:
+                pass
+        return encoded
 
     def encode(self, symb):
         return self.symbol_to_ix[symb]
