@@ -234,17 +234,16 @@ class SentimentNeuron(nn.Module):
 
     def transform_sequence(self, seq_dataset, sequence):
         with torch.no_grad():
+            # Create a new hidden state
             hidden_cell = self.__init_hidden()
 
+            xs = seq_dataset.encode_sequence(sequence)
+            batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
+
             outputs = []
-            for element in sequence:
-                try:
-                    x = seq_dataset.encode(element)
-                    tensor_x = torch.tensor(x, dtype=torch.long, device=self.device)
-                    hidden_cell, y = self.forward(tensor_x, hidden_cell)
-                    outputs.append(y)
-                except KeyError as e:
-                    pass
+            for t in range(batch.size(0)):
+                hidden_cell, y = self.forward(batch[t], hidden_cell)
+                outputs.append(y)
 
             hidden, cell = hidden_cell
 

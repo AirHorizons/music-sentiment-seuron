@@ -76,7 +76,7 @@ class EncoderMidiPerform(EncoderMidi):
                 break
 
             elif note[0] == "n":
-                pitch    = int(note.split("_")[1])
+                pitch = int(note.split("_")[1])
                 note = m21.note.Note(pitch)
                 note.duration = m21.duration.Duration(type=duration)
                 note.offset = ts * ts_duration

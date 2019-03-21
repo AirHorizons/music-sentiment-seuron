@@ -13,9 +13,8 @@ neuron_ix, logreg_model = sn.utils.train_sentiment_analysis(neuron, seq_data, op
 
 # Sampling
 sample = neuron.generate_sequence(seq_data, "This is ", 200, 0.4, override={neuron_ix : 1.0})
-neuron_values = sn.utils.get_neuron_values_for_a_sequence(neuron, seq_data, sample, neuron_ix)
-
 print(sample)
+neuron_values = sn.utils.get_neuron_values_for_a_sequence(neuron, seq_data, sample, neuron_ix)
 print(neuron_values)
 
 sn.utils.plot_heatmap(opt.results_path, sample, neuron_values)
