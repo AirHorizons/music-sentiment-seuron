@@ -232,39 +232,29 @@ class SentimentNeuron(nn.Module):
 
             return seq_dataset.decode(seq)
 
-    def transform_sequence(self, seq_dataset, sequence):
+    def transform_sequence(self, seq_dataset, sequence, track_indices=[]):
         with torch.no_grad():
+            track_indices_values = [[] for i in range(len(track_indices))]
+
             # Create a new hidden state
             hidden_cell = self.__init_hidden()
 
             xs = seq_dataset.encode_sequence(sequence)
             batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
 
-            outputs = []
             for t in range(batch.size(0)):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
-                outputs.append(y)
 
-            hidden, cell = hidden_cell
+                hidden, cell = hidden_cell
+                trans_sequence = np.squeeze(cell.data.cpu().numpy())
+                for i, index in enumerate(track_indices):
+                    track_indices_values[i].append(trans_sequence[index])
 
             # Use cell state as feature vector fot the sentence
-            trans_sequence = np.squeeze(cell.data.cpu().numpy())
+            final_hidden, final_cell = hidden_cell
+            trans_sequence = np.squeeze(final_cell.data.cpu().numpy())
 
-            return trans_sequence, outputs
-
-    def get_top_k_neuron_weights(self, logreg_model, k=1):
-        weights = logreg_model.coef_.T
-        weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
-
-        if k == 1:
-            k_indices = np.array([np.argmax(weight_penalties)])
-        elif k >= np.log(len(weight_penalties)):
-            k_indices = np.argsort(weight_penalties)[-k:][::-1]
-        else:
-            k_indices = np.argpartition(weight_penalties, -k)[-k:]
-            k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
-
-        return k_indices
+            return trans_sequence, track_indices_values
 
     def load(self, model_filename):
         print("Loading model:", model_filename)

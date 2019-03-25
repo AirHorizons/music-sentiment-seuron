@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 def plot_logits(save_root, xs, ys, top_neurons):
     save_root = os.path.join(save_root, 'results')
@@ -42,40 +43,31 @@ def plot_weight_contribs_and_save(save_root, coef):
     plt.savefig(os.path.join(save_root, "weights"))
     plt.clf()
 
-def plot_heatmap(save_root, text, neuron_values, polarity=1):
+def plot_heatmap(save_root, preprocessed_text, values):
     save_root = os.path.join(save_root,'results')
     if not os.path.exists(save_root):
         os.makedirs(save_root)
 
-    print('Plotting weights at', save_root)
+    n_limit = 64
+    num_chars = len(preprocessed_text)
 
-    n_limit = 74
+    for i in np.arange(0, len(values), n_limit):
+        if i + n_limit > num_chars:
+            end_index = num_chars
+        else:
+            end_index = i+n_limit
 
-    cell_height = .325
-    cell_width  = .15
+        values_limited = values[i:end_index]
+        values_reshaped = values_limited.reshape((1, end_index - i))
 
-    text = list(map(lambda x: x.replace('\n', '\\n'), text))
+        chars_limited = list(preprocessed_text[i:end_index])
+        chars_reshaped = np.array(chars_limited).reshape((1, end_index - i))
 
-    num_chars = len(text)
-    total_chars = math.ceil(num_chars/float(n_limit)) * n_limit
+        fig, ax = plt.subplots(figsize=(20,0.5))
+        ax = sns.heatmap(values_reshaped, annot=chars_reshaped, fmt='', annot_kws={"size":15}, vmin=-1, vmax=1, cmap='RdYlGn')
 
-    mask = np.array([0]*num_chars + [1]*(total_chars-num_chars))
-    text = np.array(text+[' ']*(total_chars-num_chars))
-
-    neuron_values = np.array(neuron_values+[0]*(total_chars-num_chars))
-    neuron_values *= polarity
-
-    neuron_values = neuron_values.reshape(-1, n_limit)
-    text = text.reshape(-1, n_limit)
-    mask = mask.reshape(-1, n_limit)
-
-    num_rows = len(neuron_values)
-    plt.figure(figsize=(cell_width*n_limit, cell_height*num_rows))
-    sns.heatmap(neuron_values, annot=text, mask=mask, fmt='', vmin=-1, vmax=1, cmap='RdYlGn', xticklabels=False, yticklabels=False, cbar=False)
-    plt.tight_layout()
-
-    plt.savefig(os.path.join(save_root, "heatmap"))
-    plt.clf()
+        plt.savefig(os.path.join(save_root, "heatmap_" + str(i)))
+        plt.clf()
 
 def normalize(coef):
     norm = np.linalg.norm(coef)

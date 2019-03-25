@@ -85,13 +85,27 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path, results_path):
     print('%05.3f Regularization coef' % c)
     print('%05d Features used' % n_not_zero)
 
-    sentneuron_ix = neuron.get_top_k_neuron_weights(logreg_model)
+    sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
 
-    plot_logits(results_path, trXt, np.array(trY), sentneuron_ix)
+    plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
     plot_weight_contribs_and_save(results_path, logreg_model.coef_)
 
-    return sentneuron_ix[0], logreg_model
+    return sentneuron_ixs[0], logreg_model
 
-def get_neuron_values_for_a_sequence(neuron, seq_data, sequence, neuron_ix):
-    _ ,outputs = neuron.transform_sequence(seq_data, sequence)
-    neuron_values = np.array([np.array(vals).flatten() for vals in outputs[neuron_ix]])
+def get_top_k_neuron_weights(logreg_model, k=5):
+    weights = logreg_model.coef_.T
+    weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+    if k == 1:
+        k_indices = np.array([np.argmax(weight_penalties)])
+    elif k >= np.log(len(weight_penalties)):
+        k_indices = np.argsort(weight_penalties)[-k:][::-1]
+    else:
+        k_indices = np.argpartition(weight_penalties, -k)[-k:]
+        k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
+
+    return k_indices
+
+def get_neuron_values_for_a_sequence(neuron, seq_data, sequence, track_indices):
+    _ ,tracked_indices_values = neuron.transform_sequence(seq_data, sequence, track_indices)
+    return np.array([np.array(vals).flatten() for vals in tracked_indices_values])

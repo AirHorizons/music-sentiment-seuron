@@ -24,8 +24,6 @@ class EncoderMidiNote(EncoderMidi):
                     note_encoding.append("n" + str(j))
             note_encoding.append(".")
 
-        self.write(note_encoding, "note_test")
-
         return note_encoding
 
     def encoding2midi(self, note_encoding, sample_freq=4, duration=2):

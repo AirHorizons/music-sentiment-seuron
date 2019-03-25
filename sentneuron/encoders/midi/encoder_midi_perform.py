@@ -34,12 +34,9 @@ class EncoderMidiPerform(EncoderMidi):
                         perform_encoding.append("v_" + str(velocity))
 
                     if duration != 0 and duration != lastDuration:
-                        try:
-                            duration_type, _ = m21.duration.quarterLengthToClosestType(duration)
-                        except:
-                            duration_type = "16th"
-
-                        perform_encoding.append("d_" + duration_type)
+                        duration_tuple = m21.duration.durationTupleFromQuarterLength(duration)
+                        if duration_tuple.type != "inexpressible":
+                            perform_encoding.append("d_" + duration_tuple.type + "_" + str(duration_tuple.dots))
 
                     if duration != 0 and velocity != 0:
                         perform_encoding.append("n_" + str(j))
@@ -65,7 +62,8 @@ class EncoderMidiPerform(EncoderMidi):
         notes = []
 
         velocity = 100
-        duration = "quarter"
+        duration = "16th"
+        dots = 0
 
         ts = 0
         for note in note_encoding.split(" "):
@@ -78,13 +76,14 @@ class EncoderMidiPerform(EncoderMidi):
             elif note[0] == "n":
                 pitch = int(note.split("_")[1])
                 note = m21.note.Note(pitch)
-                note.duration = m21.duration.Duration(type=duration)
+                note.duration = m21.duration.Duration(type=duration, dots=dots)
                 note.offset = ts * ts_duration
                 note.volume.velocity = velocity
                 notes.append(note)
 
             elif note[0] == "d":
                 duration = note.split("_")[1]
+                dots = int(note.split("_")[2])
 
             elif note[0] == "v":
                 velocity = int(note.split("_")[1])
