@@ -53,8 +53,6 @@ class EncoderMidiPerform(EncoderMidi):
             final_encoding += perform_encoding
             final_encoding.append("\n")
 
-            self.write(" ".join(perform_encoding), "encoding_test")
-
             perform_i += 1
 
         return " ".join(final_encoding)
