@@ -35,8 +35,7 @@ class EncoderMidiPerform(EncoderMidi):
 
                     if duration != 0 and duration != lastDuration:
                         duration_tuple = m21.duration.durationTupleFromQuarterLength(duration)
-                        if duration_tuple.type != "inexpressible":
-                            perform_encoding.append("d_" + duration_tuple.type + "_" + str(duration_tuple.dots))
+                        perform_encoding.append("d_" + duration_tuple.type + "_" + str(duration_tuple.dots))
 
                     if duration != 0 and velocity != 0:
                         perform_encoding.append("n_" + str(j))
@@ -53,6 +52,8 @@ class EncoderMidiPerform(EncoderMidi):
 
             final_encoding += perform_encoding
             final_encoding.append("\n")
+
+            self.write(" ".join(perform_encoding), "encoding_test")
 
             perform_i += 1
 

@@ -9,6 +9,9 @@ from abc import ABC, abstractmethod
 # Local imports
 from ..encoder import Encoder
 
+THREE_DOTTED_BREVE = 15
+THREE_DOTTED_32ND  = 0.21875
+
 class EncoderMidi(Encoder):
     def load(self, datapath):
         encoded_midi = []
@@ -196,6 +199,8 @@ class EncoderMidi(Encoder):
 
                 for note in transpositions[t_ix]:
                     pitch, duration, velocity, offset = note
+                    if duration == 0.0:
+                        continue
 
                     # Force notes to be inside the specified piano_range
                     while pitch < 0:
@@ -204,12 +209,12 @@ class EncoderMidi(Encoder):
                         pitch -= 12
 
                     # offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
-                    piano_roll[offset, pitch][0] = duration
+                    piano_roll[offset, pitch][0] = self.__clamp_duration(duration)
                     piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
 
                 for time_event in time_streches[s_ix]:
                     time, offset = time_event
-                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 200))
+                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 176))
 
                 performances.append(piano_roll)
 
@@ -259,3 +264,19 @@ class EncoderMidi(Encoder):
         bin_size = (max_val/bins)
 
         return ma.floor(velocity/bin_size) * bin_size
+
+    def __clamp_duration(self, duration, max=THREE_DOTTED_BREVE, min=THREE_DOTTED_32ND):
+        duration_tuple = m21.duration.durationTupleFromQuarterLength(duration)
+        if duration_tuple.type == "inexpressible":
+            duration_clossest_type = m21.duration.quarterLengthToClosestType(duration)[0]
+            duration = m21.duration.typeToDuration[duration_clossest_type]
+
+        # Max duration is 3-dotted breve
+        if duration > max:
+            duration = max
+
+        # min duration is 3-dotted breve
+        if duration < min:
+            duration = min
+
+        return duration
