@@ -92,6 +92,40 @@ def train_sentiment_analysis(neuron, seq_data, sent_data_path, results_path):
 
     return sentneuron_ixs[0], logreg_model
 
+def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_path, k=10):
+    # Load sentiment data from given path
+    sent_data = sn.encoders.SentimentDataKFold(sent_data_path, "sentence", "label", k)
+
+    for train, test in sent_data.split:
+        trX  = []
+        trY  = []
+
+        print("Transforming Trainning Sequences.")
+        for ix in train:
+            sequence,label = sent_data.data[ix]
+            trX.append(sequence)
+            trY.append(label)
+
+        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
+
+        vaX  = []
+        vaY  = []
+
+        print("Transforming Validation Sequences.")
+        for ix in test:
+            sequence,label = sent_data.data[ix]
+            vaX.append(sequence)
+            vaY.append(label)
+
+        vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
+
+        print("Trainning sentiment classifier with transformed sequences.")
+        full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY)
+
+        print('%05.3f Test accuracy' % full_rep_acc)
+        print('%05.3f Regularization coef' % c)
+        print('%05d Features used' % n_not_zero)
+
 def get_top_k_neuron_weights(logreg_model, k=5):
     weights = logreg_model.coef_.T
     weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))

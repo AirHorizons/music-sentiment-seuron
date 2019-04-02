@@ -176,7 +176,7 @@ class SentimentNeuron(nn.Module):
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
 
-    def fit_sentiment(self, trX, trY, vaX, vaY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
+    def fit_sentiment(self, trX, trY, vaX, vaY, teX=None, teY=None, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         with torch.no_grad():
             scores = []
             for i, c in enumerate(C):
@@ -190,7 +190,11 @@ class SentimentNeuron(nn.Module):
 
             logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
             logreg_model.fit(trX, trY)
-            score = logreg_model.score(teX, teY) * 100.
+
+            if teX is not None and teY is not None:
+                score = logreg_model.score(teX, teY)*100.
+            else:
+                score = logreg_model.score(vaX, vaY)*100.
 
             n_not_zero = np.sum(logreg_model.coef_ != 0.)
             return score, c, n_not_zero, logreg_model

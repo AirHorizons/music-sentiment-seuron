@@ -266,11 +266,6 @@ class EncoderMidi(Encoder):
         return ma.floor(velocity/bin_size) * bin_size
 
     def __clamp_duration(self, duration, max=THREE_DOTTED_BREVE, min=THREE_DOTTED_32ND):
-        duration_tuple = m21.duration.durationTupleFromQuarterLength(duration)
-        if duration_tuple.type == "inexpressible":
-            duration_clossest_type = m21.duration.quarterLengthToClosestType(duration)[0]
-            duration = m21.duration.typeToDuration[duration_clossest_type]
-
         # Max duration is 3-dotted breve
         if duration > max:
             duration = max
@@ -278,5 +273,10 @@ class EncoderMidi(Encoder):
         # min duration is 3-dotted breve
         if duration < min:
             duration = min
+
+        duration_tuple = m21.duration.durationTupleFromQuarterLength(duration)
+        if duration_tuple.type == "inexpressible":
+            duration_clossest_type = m21.duration.quarterLengthToClosestType(duration)[0]
+            duration = m21.duration.typeToDuration[duration_clossest_type]
 
         return duration
