@@ -94,10 +94,10 @@ class SentimentNeuron(nn.Module):
         # Loss at epoch 0
         smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
 
-        for epoch in range(epochs):
-            # Start optimizer with initial learning rate every epoch
-            epoch_lr = lr
+        # Start optimizer with initial learning rate every epoch
+        epoch_lr = lr
 
+        for epoch in range(epochs):
             # Iterate on each shard of the dataset
             for shard in seq_dataset.data:
                 h_init = self.__init_hidden(batch_size)
@@ -147,8 +147,8 @@ class SentimentNeuron(nn.Module):
                     if batch_ix % 10 == 0:
                         self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, shard_content)
 
-                # Apply learning rate decay before the next epoch
-                epoch_lr *= lr_decay
+            # Apply learning rate decay before the next epoch
+            epoch_lr *= lr_decay
 
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
