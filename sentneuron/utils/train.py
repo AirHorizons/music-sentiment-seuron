@@ -127,6 +127,11 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
         print('%05.3f Regularization coef' % c)
         print('%05d Features used' % n_not_zero)
 
+        sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
+
+        plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, "fold" + str(fold_ix))
+        plot_weight_contribs_and_save(results_path, logreg_model.coef_, "fold" + str(fold_ix))
+
         fold_ix += 1
 
 def get_top_k_neuron_weights(logreg_model, k=5):

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-def plot_logits(save_root, xs, ys, top_neurons):
+def plot_logits(save_root, xs, ys, top_neurons, fold=""):
     save_root = os.path.join(save_root, 'results')
     if not os.path.exists(save_root):
         os.makedirs(save_root)
@@ -14,7 +14,7 @@ def plot_logits(save_root, xs, ys, top_neurons):
     print('Plotting logits at', save_root)
 
     for i, n in enumerate(top_neurons):
-        plot_logit_and_save(xs, ys, n, os.path.join(save_root, str(i) + '_' + str(n)))
+        plot_logit_and_save(xs, ys, n, os.path.join(save_root, fold + "_" + str(i) + '_' + str(n)))
 
 def plot_logit_and_save(xs, ys, neuron_index, name):
     sentiment_unit = xs[:,neuron_index]
@@ -27,7 +27,7 @@ def plot_logit_and_save(xs, ys, neuron_index, name):
     plt.savefig(name + '.png')
     plt.clf()
 
-def plot_weight_contribs_and_save(save_root, coef):
+def plot_weight_contribs_and_save(save_root, coef, fold=""):
     save_root = os.path.join(save_root,'results')
     if not os.path.exists(save_root):
         os.makedirs(save_root)
@@ -40,7 +40,7 @@ def plot_weight_contribs_and_save(save_root, coef):
     plt.plot(range(len(coef[0])), coef.T)
     plt.xlabel('Neuron (Feature) Index')
     plt.ylabel('Neuron (Feature) weight')
-    plt.savefig(os.path.join(save_root, "weights"))
+    plt.savefig(os.path.join(save_root, fold + "_weights"))
     plt.clf()
 
 def plot_heatmap(save_root, preprocessed_text, values):
