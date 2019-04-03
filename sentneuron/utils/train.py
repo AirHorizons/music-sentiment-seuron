@@ -96,6 +96,7 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
     # Load sentiment data from given path
     sent_data = sn.encoders.SentimentDataKFold(sent_data_path, "sentence", "label", k)
 
+    fold_ix = 0;
     for train, test in sent_data.split:
         trX  = []
         trY  = []
@@ -106,7 +107,7 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
             trX.append(sequence)
             trY.append(label)
 
-        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
+        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX_' + str(fold_ix) + '.npy'))
 
         vaX  = []
         vaY  = []
@@ -117,7 +118,7 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
             vaX.append(sequence)
             vaY.append(label)
 
-        vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
+        vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX_' + str(fold_ix) + '.npy'))
 
         print("Trainning sentiment classifier with transformed sequences.")
         full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY)
@@ -125,6 +126,8 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
         print('%05.3f Test accuracy' % full_rep_acc)
         print('%05.3f Regularization coef' % c)
         print('%05d Features used' % n_not_zero)
+
+        fold_ix += 1
 
 def get_top_k_neuron_weights(logreg_model, k=5):
     weights = logreg_model.coef_.T
