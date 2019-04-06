@@ -6,10 +6,9 @@ import torch.optim    as optim
 import torch.autograd as ag
 import numpy          as np
 
-from sklearn.linear_model import LogisticRegression
-
 # Local imports
 from .models import mLSTM
+from sklearn.linear_model import LogisticRegression
 
 class SentimentNeuron(nn.Module):
     def __init__(self, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0):
@@ -80,6 +79,27 @@ class SentimentNeuron(nn.Module):
         y = self.h2y(emb_x)
 
         return (h_1, c_1), y
+
+    def fit_sentiment(self, trX, trY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
+        scores = []
+
+        # Hyper-parameter C optimization
+        for i, c in enumerate(C):
+            logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
+            logreg_model.fit(trX, trY)
+
+            score = logreg_model.score(teX, teY)
+            scores.append(score)
+
+        c = C[np.argmax(scores)]
+
+        logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
+        logreg_model.fit(trX, trY)
+
+        score = logreg_model.score(teX, teY) * 100.
+        n_not_zero = np.sum(logreg_model.coef_ != 0.)
+
+        return score, c, n_not_zero, logreg_model
 
     def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
         try:
@@ -175,29 +195,6 @@ class SentimentNeuron(nn.Module):
     def __clip_gradient(self, clip):
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
-
-    def fit_sentiment(self, trX, trY, vaX, vaY, teX=None, teY=None, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
-        with torch.no_grad():
-            scores = []
-            for i, c in enumerate(C):
-                logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
-                logreg_model.fit(trX, trY)
-
-                score = logreg_model.score(vaX, vaY)
-                scores.append(score)
-
-            c = C[np.argmax(scores)]
-
-            logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
-            logreg_model.fit(trX, trY)
-
-            if teX is not None and teY is not None:
-                score = logreg_model.score(teX, teY)*100.
-            else:
-                score = logreg_model.score(vaX, vaY)*100.
-
-            n_not_zero = np.sum(logreg_model.coef_ != 0.)
-            return score, c, n_not_zero, logreg_model
 
     def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=0.4, override={}):
         with torch.no_grad():

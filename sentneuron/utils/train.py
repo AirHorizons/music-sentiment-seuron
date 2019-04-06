@@ -7,17 +7,17 @@ import sentneuron as sn
 # Local imports
 from .plot import *
 
-def create_data_with_type(data, data_type, pre_loaded):
+def create_data_with_type(seq_data_path, data_type, pre_loaded):
     seq_data = None
 
     if data_type == "txt":
-        seq_data = sn.encoders.EncoderText(data, pre_loaded)
+        seq_data = sn.encoders.EncoderText(seq_data_path, pre_loaded)
     elif data_type == "midi_note":
-        seq_data = sn.encoders.midi.EncoderMidiNote(data, pre_loaded)
+        seq_data = sn.encoders.midi.EncoderMidiNote(seq_data_path, pre_loaded)
     elif data_type == "midi_chord":
-        seq_data = sn.encoders.midi.EncoderMidiChord(data, pre_loaded)
+        seq_data = sn.encoders.midi.EncoderMidiChord(seq_data_path, pre_loaded)
     elif data_type == "midi_perform":
-        seq_data = sn.encoders.midi.EncoderMidiPerform(data, pre_loaded)
+        seq_data = sn.encoders.midi.EncoderMidiPerform(seq_data_path, pre_loaded)
 
     return seq_data
 
@@ -39,8 +39,8 @@ def load_generative_model(model_path):
 
     return neuron, seq_data
 
-def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, lr_decay=0.7, grad_clip=5, batch_size=128):
-    seq_data = create_data_with_type(data, data_type, pre_loaded=False)
+def train_generative_model(seq_data_path, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, lr_decay=0.7, grad_clip=5, batch_size=128):
+    seq_data = create_data_with_type(seq_data_path, data_type, pre_loaded=False)
 
     input_size  = seq_data.encoding_size
     output_size = seq_data.encoding_size
@@ -51,77 +51,35 @@ def train_generative_model(data, data_type, embed_size, hidden_size, n_layers=1,
 
     return neuron, seq_data
 
-def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
-    if(os.path.isfile(xs_filename)):
-        xs = np.squeeze(np.load(xs_filename))
-    else:
-        for i in range(len(xs)):
-            xs[i], _ = neuron.transform_sequence(seq_data, xs[i])
-        np.save(xs_filename, xs)
+def train_supervised_classification_model(seq_data_path, data_type, sent_data, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, lr=5e-4, lr_decay=0.7, batch_size=128):
+    seq_data = create_data_with_type(seq_data_path, data_type, pre_loaded=False)
 
-    return xs
+    input_size  = seq_data.encoding_size
+    output_size = 1
 
-def train_sentiment_analysis(neuron, seq_data, sent_data_path, results_path):
-    # Load sentiment data from given path
-    sent_data = sn.encoders.SentimentData(sent_data_path, "sentence", "label")
-
-    print("Transforming Trainning Sequences.")
-    trX, trY = sent_data.train
-    trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX.npy'))
-
-    print("Transforming Validation Sequences.")
-    vaX, vaY = sent_data.validation
-    vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX.npy'))
-
-    print("Transforming Test Sequences.")
-    teX, teY = sent_data.test
-    teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_path, 'teX.npy'))
-
-    # Running sentiment analysis
-    print("Trainning sentiment classifier with transformed sequences.")
-    full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
-
-    print('%05.3f Test accuracy' % full_rep_acc)
-    print('%05.3f Regularization coef' % c)
-    print('%05d Features used' % n_not_zero)
-
-    sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
-
-    plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
-    plot_weight_contribs_and_save(results_path, logreg_model.coef_)
-
-    return sentneuron_ixs[0], logreg_model
-
-def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_path, k=10):
-    # Load sentiment data from given path
-    sent_data = sn.encoders.SentimentDataKFold(sent_data_path, "sentence", "label", k)
-
-    fold_ix = 0;
     for train, test in sent_data.split:
-        trX  = []
-        trY  = []
+        trX, trY = sent_data.unpack_fold(train)
+        teX, teY = sent_data.unpack_fold(test)
+
+        neuron = sn.SentimentLSTM(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
+        score = neuron.fit_sentiment(seq_data, trX, trY, teX, teY, epochs, lr, lr_decay, batch_size)
+
+        print('%05.3f Test accuracy' % score)
+
+def train_unsupervised_classification_model(neuron, seq_data, sent_data, results_path):
+    for train, test in sent_data.split:
+        trX, trY = sent_data.unpack_fold(train)
+        teX, teY = sent_data.unpack_fold(test)
 
         print("Transforming Trainning Sequences.")
-        for ix in train:
-            sequence,label = sent_data.data[ix]
-            trX.append(sequence)
-            trY.append(label)
+        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data.data_path, 'trX.npy'))
 
-        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_path, 'trX_' + str(fold_ix) + '.npy'))
+        print("Transforming Test Sequences.")
+        teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data.data_path, 'teX.npy'))
 
-        vaX  = []
-        vaY  = []
-
-        print("Transforming Validation Sequences.")
-        for ix in test:
-            sequence,label = sent_data.data[ix]
-            vaX.append(sequence)
-            vaY.append(label)
-
-        vaXt = tranform_sentiment_data(neuron, seq_data, vaX, os.path.join(sent_data_path, 'vaX_' + str(fold_ix) + '.npy'))
-
+        # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
-        full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY)
+        full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
 
         print('%05.3f Test accuracy' % full_rep_acc)
         print('%05.3f Regularization coef' % c)
@@ -129,10 +87,18 @@ def train_sentiment_analysis_k_fold(neuron, seq_data, sent_data_path, results_pa
 
         sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
 
-        plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, "fold" + str(fold_ix))
-        plot_weight_contribs_and_save(results_path, logreg_model.coef_, "fold" + str(fold_ix))
+        plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
+        plot_weight_contribs_and_save(results_path, logreg_model.coef_)
 
-        fold_ix += 1
+def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
+    if(os.path.isfile(xs_filename)):
+        xs = np.squeeze(np.load(xs_filename))
+    else:
+        for i in range(len(xs)):
+            xs[i], _ = neuron.transform_sequence(seq_data, xs[i].split(" "))
+        np.save(xs_filename, xs)
+
+    return xs
 
 def get_top_k_neuron_weights(logreg_model, k=5):
     weights = logreg_model.coef_.T
