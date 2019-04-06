@@ -157,8 +157,8 @@ class SentimentNeuron(nn.Module):
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
 
                 # Use file pointer to read file content
-                fp, filename = shard
-                shard_content = seq_dataset.read(fp)
+                filepath, filename = shard
+                shard_content = seq_dataset.read(filepath)
 
                 # Batchify file content
                 sequence = seq_dataset.encode_sequence(shard_content)

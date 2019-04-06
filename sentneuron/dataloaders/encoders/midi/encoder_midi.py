@@ -53,7 +53,7 @@ class EncoderMidi(Encoder):
                 midi_fp.close();
 
                 if len(midi_content) > 0:
-                    encoded_midi.append((midi_fp, midi_name + ".mid"))
+                    encoded_midi.append((midipath, midi_name + ".mid"))
                     vocab = vocab | set(midi_content.split(" "))
 
         return encoded_midi, vocab
@@ -71,9 +71,10 @@ class EncoderMidi(Encoder):
         return " ".join(self.ix_to_symbol[ix] for ix in ixs)
 
     def read(self, file):
-        file.seek(0);
+        fp = open(filepath, "r")
         content = file.read().split(" ")
         content = list(filter(('').__ne__, content))
+        fp.close()
         return content
 
     def write(self, encoded_midi, path):
