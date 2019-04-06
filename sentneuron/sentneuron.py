@@ -156,6 +156,7 @@ class SentimentNeuron(nn.Module):
                 # Use file pointer to read file content
                 filepath, filename = shard
                 shard_content = seq_dataset.read(filepath)
+                print(shard_content)
 
                 # Batchify file content
                 sequence = seq_dataset.encode_sequence(shard_content)

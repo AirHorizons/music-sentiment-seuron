@@ -72,7 +72,8 @@ class EncoderMidi(Encoder):
 
     def read(self, filepath):
         fp = open(filepath, "r")
-        content = fp.read().split(" ")
+        content = fp.read()
+        content = content.split(" ")
         content = list(filter(('').__ne__, content))
         fp.close()
         return content
