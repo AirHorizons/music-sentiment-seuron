@@ -11,7 +11,7 @@ class SentimentMidi:
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name)
         self.split = KFold(k, True, 42).split(self.data)
 
-    def load(self, filepath, x_col_name, y_col_name, id_col_name):
+    def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
         data = csv.DictReader(csv_file)
 
@@ -44,12 +44,15 @@ class SentimentMidi:
             sentences = []
             for s in sentiment_data[p]:
                 text, label = s
+                if pad:
+                    text = text.replace('\n', '')[:-1]
+                    s_text = text.split(" ")
+                    s_text += ['.'] * (max_len - len(s_text))
 
-                text = text.replace('\n', '')[:-1]
-                s_text = text.split(" ")
-                s_text += ['.'] * (max_len - len(s_text))
+                    sentences.append((" ".join(s_text), label))
+                else:
+                    sentences.append((text, label))
 
-                sentences.append((" ".join(s_text), label))
             sentences_per_piece.append(sentences)
 
         return sentences_per_piece
