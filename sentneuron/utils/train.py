@@ -61,6 +61,7 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
         trX, trY = sent_data.unpack_fold(train)
         teX, teY = sent_data.unpack_fold(test)
 
+        print("Trainning sentiment classifier.")
         neuron = sn.SentimentLSTM(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
         score = neuron.fit_sentiment(seq_data, trX, trY, teX, teY, epochs, lr, lr_decay, batch_size)
 
@@ -71,11 +72,13 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         trX, trY = sent_data.unpack_fold(train)
         teX, teY = sent_data.unpack_fold(test)
 
+        sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
+
         print("Transforming Trainning Sequences.")
-        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data.data_path, 'trX.npy'))
+        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX.npy'))
 
         print("Transforming Test Sequences.")
-        teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data.data_path, 'teX.npy'))
+        teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX.npy'))
 
         # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
