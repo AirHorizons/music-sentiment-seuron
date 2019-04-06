@@ -65,7 +65,10 @@ class SentimentMidi:
                 ys.append(label)
 
         unpacked_fold = list(zip(xs, ys))
+
+        random.seed(42)
         random.shuffle(unpacked_fold)
+
         xs, ys = zip(*unpacked_fold)
 
         return list(xs), list(ys)

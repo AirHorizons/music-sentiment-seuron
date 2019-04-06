@@ -72,7 +72,9 @@ class EncoderMidi(Encoder):
 
     def read(self, file):
         file.seek(0);
-        return file.read().split(" ")
+        content = file.read().split(" ")
+        content = list(filter(('').__ne__, content))
+        return content
 
     def write(self, encoded_midi, path):
         # Base class checks if output path exists

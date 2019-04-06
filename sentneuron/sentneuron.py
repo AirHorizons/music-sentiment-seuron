@@ -102,9 +102,15 @@ class SentimentNeuron(nn.Module):
         return score, c, n_not_zero, logreg_model
 
     def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
+        # Loss function
+        loss_function = nn.CrossEntropyLoss()
+
         h_init = self.__init_hidden(batch_size)
 
-        shard_content = seq_dataset.read(open(test_shard_path, "r"))
+        fp = open(test_shard_path, "r")
+        shard_content = seq_dataset.read(fp)
+        fp.close()
+
         sequence = seq_dataset.encode_sequence(shard_content)
         sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
 
@@ -119,7 +125,7 @@ class SentimentNeuron(nn.Module):
 
             loss = 0
             for t in range(seq_length):
-                h, y = neuron(batch[t], h)
+                h, y = self(batch[t], h)
                 loss += loss_function(y, batch[t+1])
 
             h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
