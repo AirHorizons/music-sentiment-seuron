@@ -68,6 +68,7 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
         print('%05.3f Test accuracy' % score)
 
 def train_unsupervised_classification_model(neuron, seq_data, sent_data, results_path):
+    test_ix = 0
     for train, test in sent_data.split:
         trX, trY = sent_data.unpack_fold(train)
         teX, teY = sent_data.unpack_fold(test)
@@ -75,10 +76,10 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
 
         print("Transforming Trainning Sequences.")
-        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX.npy'))
+        trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX_' + str(test_ix) + '.npy'))
 
         print("Transforming Test Sequences.")
-        teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX.npy'))
+        teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(test_ix) + '.npy'))
 
         # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
@@ -92,6 +93,8 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
 
         plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
         plot_weight_contribs_and_save(results_path, logreg_model.coef_)
+
+        test_ix += 1
 
 def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
     if(os.path.isfile(xs_filename)):

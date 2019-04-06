@@ -1,7 +1,7 @@
 import argparse
 import sentneuron as sn
 
-parser = argparse.ArgumentParser(description='train_generative.py')
+parser = argparse.ArgumentParser(description='generate_sequence.py')
 
 parser.add_argument('-model_path' , type=str,   required=True, help="Model metadata path."                  )
 parser.add_argument('-seq_init'   , type=str,   default=".",   help="Init of the sequence to be generated." )
