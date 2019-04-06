@@ -116,8 +116,7 @@ class SentimentNeuron(nn.Module):
 
         n_batches = sequence.size(0)//seq_length
 
-        smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
-
+        loss_avg = 0
         for batch_ix in range(n_batches - 1):
             batch = sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long()
 
@@ -129,10 +128,9 @@ class SentimentNeuron(nn.Module):
                 loss += loss_function(y, batch[t+1])
 
             h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
+            loss_avg += loss.item()/seq_length
 
-            smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-
-        return smooth_loss
+        return smooth_loss/n_batches
 
     def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
         try:
