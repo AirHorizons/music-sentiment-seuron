@@ -130,7 +130,7 @@ class SentimentNeuron(nn.Module):
             h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
             loss_avg += loss.item()/seq_length
 
-        return smooth_loss/n_batches
+        return loss_avg/n_batches
 
     def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
         try:
