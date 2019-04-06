@@ -106,10 +106,7 @@ class SentimentNeuron(nn.Module):
         loss_function = nn.CrossEntropyLoss()
 
         h_init = self.__init_hidden(batch_size)
-
-        fp = open(test_shard_path, "r")
-        shard_content = seq_dataset.read(fp)
-        fp.close()
+        shard_content = seq_dataset.read(test_shard_path)
 
         sequence = seq_dataset.encode_sequence(shard_content)
         sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)

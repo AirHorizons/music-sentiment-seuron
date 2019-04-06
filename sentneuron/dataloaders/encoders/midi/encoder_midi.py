@@ -70,7 +70,7 @@ class EncoderMidi(Encoder):
         # Create piano roll and return it
         return " ".join(self.ix_to_symbol[ix] for ix in ixs)
 
-    def read(self, file):
+    def read(self, filepath):
         fp = open(filepath, "r")
         content = file.read().split(" ")
         content = list(filter(('').__ne__, content))
