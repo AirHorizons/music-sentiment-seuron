@@ -82,7 +82,7 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
 
         # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
-        full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, vaXt, vaY, teXt, teY)
+        full_rep_acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
         print('%05.3f Test accuracy' % full_rep_acc)
         print('%05.3f Regularization coef' % c)

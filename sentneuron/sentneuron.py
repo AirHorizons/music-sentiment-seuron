@@ -101,8 +101,8 @@ class SentimentNeuron(nn.Module):
 
         return score, c, n_not_zero, logreg_model
 
-    def evaluate(seq_dataset, batch_size, seq_length, test_shard_path):
-        h_init = self.neuron(batch_size)
+    def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
+        h_init = self.__init_hidden(batch_size)
 
         shard_content = seq_dataset.read(open(test_shard_path, "r"))
         sequence = seq_dataset.encode_sequence(shard_content)
