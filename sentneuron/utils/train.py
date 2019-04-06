@@ -89,10 +89,10 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print('%05.3f Regularization coef' % c)
         print('%05d Features used' % n_not_zero)
 
-        sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
-
-        plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
-        plot_weight_contribs_and_save(results_path, logreg_model.coef_)
+        # sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
+        #
+        # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs)
+        # plot_weight_contribs_and_save(results_path, logreg_model.coef_)
 
         test_ix += 1
 
