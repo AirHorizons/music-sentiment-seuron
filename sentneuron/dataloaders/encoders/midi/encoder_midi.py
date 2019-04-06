@@ -53,7 +53,7 @@ class EncoderMidi(Encoder):
                 midi_fp.close();
 
                 if len(midi_content) > 0:
-                    encoded_midi.append((midipath, midi_name + ".mid"))
+                    encoded_midi.append((midi_txt_name, midi_name + ".mid"))
                     vocab = vocab | set(midi_content.split(" "))
 
         return encoded_midi, vocab
