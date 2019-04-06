@@ -6,9 +6,9 @@ import random
 from sklearn.model_selection import KFold
 
 class SentimentMidi:
-    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10):
+    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False):
         self.data_path = data_path
-        self.data = self.load(data_path, x_col_name, y_col_name, id_col_name)
+        self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
         self.split = KFold(k, True, 42).split(self.data)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
