@@ -73,7 +73,8 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
 
     accs = []
 
-    for train, test in sent_data.split:
+    data_split = list(sent_data.split)
+    for train, test in data_split:
         print("-> Test", test_ix)
         trX, trY = sent_data.unpack_fold(train)
         teX, teY = sent_data.unpack_fold(test)
@@ -93,25 +94,20 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         accs.append(acc)
         test_ix += 1
 
-    test_ix = 0
-    for train, test in sent_data.split:
-        if test_ix == np.argmax(accs):
-            trX, trY = sent_data.unpack_fold(train)
-            teX, teY = sent_data.unpack_fold(test)
+    best_test_ix = np.argmax(accs)
+    train, test = data_split[best_test_ix]
+    trX, trY = sent_data.unpack_fold(train)
+    teX, teY = sent_data.unpack_fold(test)
 
-            sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
+    sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
 
-            trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX_' + str(test_ix) + '.npy'))
-            teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(test_ix) + '.npy'))
-            acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
+    trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX_' + str(best_test_ix) + '.npy'))
+    teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(best_test_ix) + '.npy'))
+    acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
-            print('Test accuracy', acc)
-            print('Regularization coef', c)
-            print('Features used', len(n_not_zero))
-
-            break
-
-        test_ix += 1
+    print('Test accuracy', acc)
+    print('Regularization coef', c)
+    print('Features used', len(n_not_zero))
 
     sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
     print(sentneuron_ixs)
