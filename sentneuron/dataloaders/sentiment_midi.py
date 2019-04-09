@@ -45,7 +45,6 @@ class SentimentMidi:
             for s in sentiment_data[p]:
                 text, label = s
                 if pad:
-                    text = text.replace('\n', '')[:-1]
                     s_text = text.split(" ")
                     s_text += ['.'] * (max_len - len(s_text))
 

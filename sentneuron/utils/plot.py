@@ -17,13 +17,12 @@ def plot_logits(save_root, xs, ys, top_neurons, fold=""):
         plot_logit_and_save(xs, ys, n, os.path.join(save_root, fold + "_" + str(i) + '_' + str(n)))
 
 def plot_logit_and_save(xs, ys, neuron_index, name):
-    print(neuron_index)
     sentiment_unit = xs[:,neuron_index]
     # plt.title('Distribution of Logit Values')
     plt.ylabel('Number of Reviews')
     plt.xlabel('Value of the Sentiment Neuron')
-    plt.hist(sentiment_unit[ys < 0.5], bins=25, alpha=0.5, label='Negative Reviews')
-    plt.hist(sentiment_unit[ys > 0.5], bins=25, alpha=0.5, label='Positive Reviews')
+    plt.hist(sentiment_unit[ys < 0.5], bins=50, alpha=0.5, label='Negative Reviews')
+    plt.hist(sentiment_unit[ys > 0.5], bins=50, alpha=0.5, label='Positive Reviews')
     plt.legend()
     plt.savefig(name + '.png')
     plt.clf()

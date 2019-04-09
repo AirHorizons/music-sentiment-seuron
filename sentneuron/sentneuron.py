@@ -97,7 +97,7 @@ class SentimentNeuron(nn.Module):
         logreg_model.fit(trX, trY)
 
         score = logreg_model.score(teX, teY) * 100.
-        n_not_zero = np.sum(logreg_model.coef_ != 0.)
+        n_not_zero = np.argwhere(logreg_model.coef_)
 
         return score, c, n_not_zero, logreg_model
 
@@ -224,7 +224,7 @@ class SentimentNeuron(nn.Module):
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
 
-    def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=0.4, override={}):
+    def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=1.0, override={}):
         with torch.no_grad():
             # Initialize the sequence
             seq = []
@@ -281,7 +281,7 @@ class SentimentNeuron(nn.Module):
 
             # Use cell state as feature vector fot the sentence
             final_hidden, final_cell = hidden_cell
-            trans_sequence = np.squeeze(final_cell.data.cpu().numpy())
+            trans_sequence = np.squeeze(final_hidden.data.cpu().numpy())
 
             return trans_sequence, track_indices_values
 
