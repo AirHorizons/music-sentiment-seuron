@@ -41,7 +41,7 @@ class GeneticAlgorithm:
             parents = nextPop[np.random.random_integers(0,9,2)]
 
             if (i * np.random.random()) > self.crossRate:
-                nextPop[i] = np.array((parents[0] + parants[1])/2.0)
+                nextPop[i] = np.array((parents[0] + parents[1])/len(parents))
             else:
                 nextPop[i] = parents[0]
 
