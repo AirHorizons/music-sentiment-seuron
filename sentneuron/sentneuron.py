@@ -275,7 +275,7 @@ class SentimentNeuron(nn.Module):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
 
                 hidden, cell = hidden_cell
-                trans_sequence = np.squeeze(cell.data.cpu().numpy())
+                trans_sequence = np.squeeze(final_hidden.data.cpu().numpy())
                 for i, index in enumerate(track_indices):
                     track_indices_values[i].append(trans_sequence[index])
 
