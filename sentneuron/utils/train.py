@@ -115,10 +115,11 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     print('Test accuracy', acc)
     print('Regularization coef', c)
     print('Features used', len(n_not_zero))
+
     print("train y negative", len(np.where(np.array(trY) == 0.)[0]))
     print("train y positive", len(np.where(np.array(trY) == 1.)[0]))
-    print("test y negative", len(np.where(np.array(teY) == 0.)[0]))
-    print("test y positive", len(np.where(np.array(teY) == 1.)[0]))
+    print("test  y negative", len(np.where(np.array(teY) == 0.)[0]))
+    print("test  y positive", len(np.where(np.array(teY) == 1.)[0]))
 
     sentneuron_ixs = get_top_k_neuron_weights(logreg_model, len(n_not_zero))
     print(sentneuron_ixs)
@@ -127,16 +128,21 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     plot_weight_contribs_and_save(results_path, logreg_model.coef_, fold="fold_")
 
     genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model)
-    genAlg.evolve()
+    best = genAlg.evolve()
+
+    override = {}
+    for i in range(len(sentneuron_ixs)):
+        override[sentneuron_ixs[i]] = best[i]
+
+    with open('ga_best.json', 'w') as fp:
+        json.dump(override, fp)
 
 def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
     if(os.path.isfile(xs_filename)):
         xs = np.squeeze(np.load(xs_filename))
     else:
         for i in range(len(xs)):
-            print(i, xs[i])
             xs[i], _ = neuron.transform_sequence(seq_data, xs[i].split(" "))
-            print(i, len(xs[i]))
         np.save(xs_filename, xs)
 
     return xs

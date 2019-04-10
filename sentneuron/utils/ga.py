@@ -16,6 +16,14 @@ class GeneticAlgorithm:
         self.fits = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
         print(self.fits)
 
+    def isSilence(self, sequence):
+        non_silence_symbs = 0
+        for symb in sequence.split(" "):
+            if symb[0] == "n":
+                non_silence_symbs += 1
+
+        return non_silence_symbs == 0
+
     def calcFitness(self, ind, experiments=30):
         fitness = []
 
@@ -24,16 +32,18 @@ class GeneticAlgorithm:
             n_ix = self.neuron_ix[i]
             override_neurons[n_ix] = ind[i]
 
-        for i in range(experiments):
-            ini_seq = self.seq_data.str2symbols(".")
+        valid_exp = 0
+        while (len(fitness) < experiments):
+            ini_seq = self.seq_data.str2symbols("t_128")
             gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override=override_neurons)
 
-            split = gen_seq.split(" ")
-            split = list(filter(('').__ne__, split))
-            trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
+            if not self.isSilence(gen_seq):
+                split = gen_seq.split(" ")
+                split = list(filter(('').__ne__, split))
+                trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
 
-            guess = self.logreg.predict([trans_seq])[0]
-            fitness.append((guess - self.ofInterest)**2)
+                guess = self.logreg.predict([trans_seq])[0]
+                fitness.append((guess - self.ofInterest)**2)
 
         return sum(fitness)/len(fitness)
         # return (ind - self.ofInterest)**2
@@ -89,4 +99,5 @@ class GeneticAlgorithm:
 
             self.fits = nextPop
 
-        print("best", self.fits[fitness.argsort()][0])
+        best = self.fits[fitness.argsort()][0]
+        return best
