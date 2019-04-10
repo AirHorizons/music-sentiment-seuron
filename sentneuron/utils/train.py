@@ -71,7 +71,7 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
 def train_unsupervised_classification_model(neuron, seq_data, sent_data, results_path):
     test_ix = 0
 
-    accs = []
+    balance = []
 
     data_split = list(sent_data.split)
     for train, test in data_split:
@@ -91,10 +91,17 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print("Trainning sentiment classifier with transformed sequences.")
         acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
-        accs.append(acc)
+        n_tr_neg = len(np.where(np.array(teY) == 0.)[0])
+        n_tr_pos = len(np.where(np.array(teY) == 1.)[0])
+
+        n_te_neg = len(np.where(np.array(teY) == 0.)[0])
+        n_te_pos = len(np.where(np.array(teY) == 1.)[0])
+        balance.append(abs(n_tr_neg - n_tr_pos) + abs(n_te_neg - n_te_pos))
         test_ix += 1
 
-    best_test_ix = np.argmax(accs)
+    best_test_ix = np.argmin(balance)
+    print("---> Test", best_test_ix)
+
     train, test = data_split[best_test_ix]
     trX, trY = sent_data.unpack_fold(train)
     teX, teY = sent_data.unpack_fold(test)
@@ -108,14 +115,18 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     print('Test accuracy', acc)
     print('Regularization coef', c)
     print('Features used', len(n_not_zero))
+    print("train y negative", len(np.where(np.array(trY) == 0.)[0]))
+    print("train y positive", len(np.where(np.array(trY) == 1.)[0]))
+    print("test y negative", len(np.where(np.array(teY) == 0.)[0]))
+    print("test y positive", len(np.where(np.array(teY) == 1.)[0]))
 
-    sentneuron_ixs = get_top_k_neuron_weights(logreg_model)
+    sentneuron_ixs = get_top_k_neuron_weights(logreg_model, len(n_not_zero))
     print(sentneuron_ixs)
 
     plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
     plot_weight_contribs_and_save(results_path, logreg_model.coef_, fold="fold_")
 
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs[0], seq_data, logreg_model)
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model)
     genAlg.evolve()
 
 def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):

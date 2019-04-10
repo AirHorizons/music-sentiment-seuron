@@ -1,10 +1,10 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, indSize=1, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
-        self.indSize      = indSize
+        self.indSize      = len(neuron_ix)
         self.crossRate    = crossRate
         self.mutRate      = mutRate
         self.elitism      = elitism
@@ -13,14 +13,20 @@ class GeneticAlgorithm:
         self.logreg       = logreg
         self.domain       = (-10, 10)
         self.neuron_ix    = neuron_ix
-        self.fits = np.random.uniform(self.domain[0], self.domain[1], (popSize, indSize))
+        self.fits = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
         print(self.fits)
 
     def calcFitness(self, ind, experiments=30):
         fitness = []
+
+        override_neurons = {}
+        for i in range(len(self.neuron_ix)):
+            n_ix = self.neuron_ix[i]
+            override_neurons[n_ix] = ind[i]
+
         for i in range(experiments):
             ini_seq = self.seq_data.str2symbols(".")
-            gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override={self.neuron_ix: ind})
+            gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override=override_neurons)
 
             split = gen_seq.split(" ")
             split = list(filter(('').__ne__, split))
@@ -35,7 +41,7 @@ class GeneticAlgorithm:
     def evaluate(self):
         fitness = []
         for i in range(self.popSize):
-            fitness.append(self.calcFitness(self.fits[i][0]))
+            fitness.append(self.calcFitness(self.fits[i]))
         return np.array(fitness)
 
     def cross(self, nextPop):
