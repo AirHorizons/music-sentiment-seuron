@@ -91,6 +91,10 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print("Trainning sentiment classifier with transformed sequences.")
         acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
+        print('Test accuracy', acc)
+        print('Regularization coef', c)
+        print('Features used', len(n_not_zero))
+
         n_tr_neg = len(np.where(np.array(teY) == 0.)[0])
         n_tr_pos = len(np.where(np.array(teY) == 1.)[0])
 
