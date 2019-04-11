@@ -131,12 +131,12 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
     plot_weight_contribs_and_save(results_path, logreg_model.coef_, fold="fold_")
 
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model, ofInterest=0.0)
-    best = genAlg.evolve()
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model, ofInterest=1.0)
+    best_ind, best_fit = genAlg.evolve()
 
     override = {}
     for i in range(len(sentneuron_ixs)):
-        override[int(sentneuron_ixs[i])] = best[i]
+        override[int(sentneuron_ixs[i])] = best_ind[i]
 
     print(override)
     with open('../output/ga_best.json', 'w') as fp:

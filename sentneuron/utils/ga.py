@@ -101,5 +101,11 @@ class GeneticAlgorithm:
 
             self.fits = nextPop
 
-        best = self.fits[fitness.argsort()][0]
-        return best
+        fitness = self.evaluate()
+        best_fit = fitness[fitness.argsort()][0]
+        best_ind = self.fits[fitness.argsort()][0]
+
+        print("best ind", best_ind)
+        print("best fit", best_fit)
+
+        return best_ind, best_fit
