@@ -95,11 +95,6 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print('Regularization coef', c)
         print('Features used', len(n_not_zero))
 
-        # n_tr_neg = len(np.where(np.array(teY) == 0.)[0])
-        # n_tr_pos = len(np.where(np.array(teY) == 1.)[0])
-        #
-        # n_te_neg = len(np.where(np.array(teY) == 0.)[0])
-        # n_te_pos = len(np.where(np.array(teY) == 1.)[0])
         accuracy.append(acc)
         test_ix += 1
 
@@ -131,7 +126,7 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
     plot_weight_contribs_and_save(results_path, logreg_model.coef_, fold="fold_")
 
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model, ofInterest=1.0)
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model, ofInterest=0.0)
     best_ind, best_fit = genAlg.evolve()
 
     override = {}
