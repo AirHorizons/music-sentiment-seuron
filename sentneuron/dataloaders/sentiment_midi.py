@@ -13,15 +13,10 @@ class SentimentMidi:
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
-
-        max_len = 0
         data = csv.DictReader(csv_file)
-        for row in data:
-            x = row[x_col_name]
-            if len(x.split(" ")) > max_len:
-                max_len = len(x.split(" "))
 
         sentiment_data = []
+
         for row in data:
             # If piece id is not in dictionary, add to it
             # id = row[id_col_name]
@@ -29,9 +24,9 @@ class SentimentMidi:
             #     sentiment_data[id] = []
 
             # Parse sentence x and label y
-
             x = row[x_col_name]
             if pad:
+                max_len = self.find_longest_sequence_len(filepath, x_col_name)
                 s_text = x.split(" ")
                 s_text += ['.'] * (max_len - len(s_text))
                 x = " ".join(s_text)
@@ -46,8 +41,6 @@ class SentimentMidi:
 
         csv_file.close()
         return sentiment_data
-
-
 
         #
         #     sentiment_data[id].append((x, y))
@@ -69,6 +62,19 @@ class SentimentMidi:
         #     sentences_per_piece.append(sentences)
 
         # return sentences_per_piece
+
+    def find_longest_sequence_len(self, filepath, x_col_name):
+        csv_file = open(filepath, "r")
+
+        max_len = 0
+        data = csv.DictReader(csv_file)
+        for row in data:
+            x = row[x_col_name]
+            if len(x.split(" ")) > max_len:
+                max_len = len(x.split(" "))
+
+        csv_file.close()
+        return max_len
 
     def unpack_fold(self, fold):
         xs = []
