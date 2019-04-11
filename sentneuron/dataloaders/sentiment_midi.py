@@ -15,15 +15,15 @@ class SentimentMidi:
         csv_file = open(filepath, "r")
         data = csv.DictReader(csv_file)
 
-        sentiment_data = {}
+        sentiment_data = []
 
         max_len = 0
 
         for row in data:
             # If piece id is not in dictionary, add to it
-            id = row[id_col_name]
-            if id not in sentiment_data:
-                sentiment_data[id] = []
+            # id = row[id_col_name]
+            # if id not in sentiment_data:
+            #     sentiment_data[id] = []
 
             # Parse sentence x and label y
             x = row[x_col_name]
@@ -33,44 +33,49 @@ class SentimentMidi:
             else:
                 y = 0
 
-            if len(x.split(" ")) > max_len:
-                max_len = len(x.split(" "))
+            sentiment_data.append((x,y))
+        return sentiment_data
 
-            sentiment_data[id].append((x, y))
 
-        # Map dictionary to list of padded (same width) sentences
-        sentences_per_piece = []
-        for p in sentiment_data:
-            sentences = []
-            for s in sentiment_data[p]:
-                text, label = s
-                if pad:
-                    s_text = text.split(" ")
-                    s_text += ['.'] * (max_len - len(s_text))
+        #     if len(x.split(" ")) > max_len:
+        #         max_len = len(x.split(" "))
+        #
+        #     sentiment_data[id].append((x, y))
+        #
+        # # Map dictionary to list of padded (same width) sentences
+        # sentences_per_piece = []
+        # for p in sentiment_data:
+        #     sentences = []
+        #     for s in sentiment_data[p]:
+        #         text, label = s
+        #         if pad:
+        #             s_text = text.split(" ")
+        #             s_text += ['.'] * (max_len - len(s_text))
+        #
+        #             sentences.append((" ".join(s_text), label))
+        #         else:
+        #             sentences.append((text, label))
+        #
+        #     sentences_per_piece.append(sentences)
 
-                    sentences.append((" ".join(s_text), label))
-                else:
-                    sentences.append((text, label))
-
-            sentences_per_piece.append(sentences)
-
-        return sentences_per_piece
+        # return sentences_per_piece
 
     def unpack_fold(self, fold):
         xs = []
         ys = []
 
         for i in fold:
-            for sentence in self.data[i]:
-                piece, label = sentence
+            # for sentence in self.data[i]:
+                # print(sentence)
+                piece, label = self.data[i]
                 xs.append(piece)
                 ys.append(label)
 
-        unpacked_fold = list(zip(xs, ys))
+        # unpacked_fold = list(zip(xs, ys))
 
-        random.seed(42)
-        random.shuffle(unpacked_fold)
+        # random.seed(42)
+        # random.shuffle(unpacked_fold)
+        #
+        # xs, ys = zip(*unpacked_fold)
 
-        xs, ys = zip(*unpacked_fold)
-
-        return list(xs), list(ys)
+        return xs, ys
