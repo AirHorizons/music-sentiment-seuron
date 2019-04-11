@@ -27,9 +27,7 @@ class SentimentMidi:
             x = row[x_col_name]
             if pad:
                 max_len = self.find_longest_sequence_len(filepath, x_col_name)
-                s_text = x.split(" ")
-                s_text += ['.'] * (max_len - len(s_text))
-                x = " ".join(s_text)
+                x = self.pad_sequence(x, max_len)
 
             y = int(float(row[y_col_name]))
             if y > 0:
@@ -63,6 +61,11 @@ class SentimentMidi:
 
         # return sentences_per_piece
 
+    def pad_sequence(self, sequence, max_len, pad_char='.'):
+        padded_text = sequence.split(" ")
+        padded_text += ['.'] * (max_len - len(padded_text))
+        return " ".join(padded_text)
+
     def find_longest_sequence_len(self, filepath, x_col_name):
         csv_file = open(filepath, "r")
 
@@ -83,15 +86,8 @@ class SentimentMidi:
         for i in fold:
             # for sentence in self.data[i]:
                 # print(sentence)
-                piece, label = self.data[i]
-                xs.append(piece)
-                ys.append(label)
-
-        # unpacked_fold = list(zip(xs, ys))
-
-        # random.seed(42)
-        # random.shuffle(unpacked_fold)
-        #
-        # xs, ys = zip(*unpacked_fold)
+            piece, label = self.data[i]
+            xs.append(piece)
+            ys.append(label)
 
         return xs, ys
