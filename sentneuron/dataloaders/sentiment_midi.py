@@ -13,12 +13,15 @@ class SentimentMidi:
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
-        data = csv.DictReader(csv_file)
-
-        sentiment_data = []
 
         max_len = 0
+        data = csv.DictReader(csv_file)
+        for row in data:
+            x = row[x_col_name]
+            if len(x.split(" ")) > max_len:
+                max_len = len(x.split(" "))
 
+        sentiment_data = []
         for row in data:
             # If piece id is not in dictionary, add to it
             # id = row[id_col_name]
@@ -26,7 +29,13 @@ class SentimentMidi:
             #     sentiment_data[id] = []
 
             # Parse sentence x and label y
+
             x = row[x_col_name]
+            if pad:
+                s_text = x.split(" ")
+                s_text += ['.'] * (max_len - len(s_text))
+                x = " ".join(s_text)
+
             y = int(float(row[y_col_name]))
             if y > 0:
                 y = 1
@@ -34,11 +43,12 @@ class SentimentMidi:
                 y = 0
 
             sentiment_data.append((x,y))
+
+        csv_file.close()
         return sentiment_data
 
 
-        #     if len(x.split(" ")) > max_len:
-        #         max_len = len(x.split(" "))
+
         #
         #     sentiment_data[id].append((x, y))
         #
