@@ -32,18 +32,19 @@ class GeneticAlgorithm:
             n_ix = self.neuron_ix[i]
             override_neurons[n_ix] = ind[i]
 
-        valid_exp = 0
-        while (len(fitness) < experiments):
+        for i in range(experiments):
             ini_seq = self.seq_data.str2symbols("t_128")
             gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override=override_neurons)
 
             split = gen_seq.split(" ")
             split = list(filter(('').__ne__, split))
 
-            if not self.isSilence(split):
+            if self.isSilence(split):
+                fitness.append(1.)
+            else:
                 trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
-
                 guess = self.logreg.predict([trans_seq])[0]
+
                 fitness.append((guess - self.ofInterest)**2)
 
         return sum(fitness)/len(fitness)
