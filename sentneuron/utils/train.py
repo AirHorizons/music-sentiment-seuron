@@ -71,7 +71,7 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
 def train_unsupervised_classification_model(neuron, seq_data, sent_data, results_path):
     test_ix = 0
 
-    balance = []
+    accuracy = []
 
     data_split = list(sent_data.split)
     for train, test in data_split:
@@ -95,15 +95,15 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print('Regularization coef', c)
         print('Features used', len(n_not_zero))
 
-        n_tr_neg = len(np.where(np.array(teY) == 0.)[0])
-        n_tr_pos = len(np.where(np.array(teY) == 1.)[0])
-
-        n_te_neg = len(np.where(np.array(teY) == 0.)[0])
-        n_te_pos = len(np.where(np.array(teY) == 1.)[0])
-        balance.append(abs(n_tr_neg - n_tr_pos) + abs(n_te_neg - n_te_pos))
+        # n_tr_neg = len(np.where(np.array(teY) == 0.)[0])
+        # n_tr_pos = len(np.where(np.array(teY) == 1.)[0])
+        #
+        # n_te_neg = len(np.where(np.array(teY) == 0.)[0])
+        # n_te_pos = len(np.where(np.array(teY) == 1.)[0])
+        accuracy.append(acc)
         test_ix += 1
 
-    best_test_ix = np.argmin(balance)
+    best_test_ix = np.argmax(accuracy)
     print("---> Test", best_test_ix)
 
     train, test = data_split[best_test_ix]

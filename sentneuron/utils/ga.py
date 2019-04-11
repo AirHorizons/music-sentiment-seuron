@@ -11,7 +11,7 @@ class GeneticAlgorithm:
         self.neuron       = neuron
         self.seq_data     = seq_data
         self.logreg       = logreg
-        self.domain       = (-10, 10)
+        self.domain       = (-2, 2)
         self.neuron_ix    = neuron_ix
         self.fits = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
         print(self.fits)
