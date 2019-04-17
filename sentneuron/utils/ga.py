@@ -33,7 +33,7 @@ class GeneticAlgorithm:
             override_neurons[n_ix] = ind[i]
 
         for i in range(experiments):
-            ini_seq = self.seq_data.str2symbols("t_128")
+            ini_seq = self.seq_data.str2symbols(".")
             gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override=override_neurons)
 
             split = gen_seq.split(" ")

@@ -75,7 +75,7 @@ def generate(sample_init, sample_len):
     print(sample_init)
 
     sample = neuron.sample(seq_data, sample_init=sample_init, sample_len=sample_len)
-    seq_data.write(sample, "../../samples/beethoven_mond")
+    seq_data.write(sample, "../../output/interactive")
 
     sample = sample.split(" ")
 
@@ -89,6 +89,6 @@ def generate(sample_init, sample_len):
     return " ".join(sample)
 
 # Load pre-trained model
-neuron, seq_data = sn.utils.load_generative_model('../../trained_models/beethoven_mond')
+neuron, seq_data = sn.utils.load_generative_model('../../trained_models/vgmidi/vgmidi_shards_2048')
 
 app.run()
