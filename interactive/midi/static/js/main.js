@@ -1,276 +1,143 @@
-// Keyboard constants
-var KEY_WIDTH  = 25;
-var KEY_HEIGHT = 100;
-var KEYBOARD_OCTAVES = 7;
-
-// Simulation constants
+// Sampler constants
 var MAX_VELOCITY = 128;
 
-// ----------------------------------------
-// SETUP FUNCTIONS
-// ----------------------------------------
+var baseTimeDiv  = "16n";
+var sequenceInit = "t_68";
 
-function setup() {
-    // Create canvas
-    canvas = createCanvas(windowWidth - 20, windowHeight - 20);
+var geIx = 0;
+var scIx = 0;
+var evIx = 0;
+var score = new Array(16);
 
-    setupKeyboard();
-    setupMenu();
+var duration    = "16n";
+var noteLength  = 1;
+var velocity    = 1.0;
+var tempo       = 120;
+var isAIPlaying = false;
 
-    isMousePressed = false;
-    isMainStarted  = false;
-    isAIPlaying    = false;
+function startAIPlayer() {
+    // Start MAIN app
+    isAIPlaying = true;
 
-    genSequenceLen = 400;
+    // Make ure tone.js is running
+    if (Tone.context.state !== 'running') {
+        Tone.context.resume();
+    }
 
-    playingTimer    = 0;
-    aiPlayingTimer  = 0;
-    lastMeasureTime = 0;
-    generationTime  = 2;
+    // Start the tone.js scheduler
+    Tone.Transport.bpm.value = tempo;
+    Tone.Transport.start();
 
-    baseTimeDiv = 16;
-
-    keysPlayed = [];
-    keysPlayedInTimeDiv = {};
-}
-
-function setupMenu() {
-    keyboard.draw();
-    background(20, 20, 20, 220);
-
-    button = createButton('PLAY');
-    button.position(width/2 - 100, height/2 - 50, 200, 100);
-    button.mousePressed(function() {
-        // Remove any HTML elements
-        removeElements();
-
-        // Change background color
-        background(20, 20, 20, 255);
-
-        // Start MAIN app
-        isMainStarted = true;
-
-        // Make ure tone.js is running
-        if (Tone.context.state !== 'running') {
-            Tone.context.resume();
-        }
-
-        // Start the tone.js scheduler
-        Tone.Transport.bpm.value = 120;
-        Tone.Transport.start();
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+        socket.emit('generate', {init: sequenceInit, first: true, sentiment: sentimentStr});
     });
-    button.id("play-button");
-}
 
-function setupKeyboard() {
-    // Create keyboard
-    var kX = width/2 - (KEYBOARD_OCTAVES * KEY_WIDTH * N_WHITE_KEY)/2;
-    var kY = height - KEY_HEIGHT;
+    socket.on("notes", function(sample, notes, sentiment) {
+        score[geIx] = {notes: notes.split(" "), sentiment: sentiment}
+        geIx = (geIx + 1) % score.length;
 
-    keyboard = new Keyboard(kX, kY, KEY_WIDTH, KEY_HEIGHT, KEYBOARD_OCTAVES);
+        // sample = sample.split(" ");
+        // var sequenceInit = sample[sample.length - 1]
+        socket.emit('generate', {init: sample, first: false, sentiment: sentimentStr});
+    })
 
-    keyboard.keyDown = function(pitch, velocity) {
-        playingTimer = 0;
-
-        if(!isAIPlaying) {
-            keysPlayedInTimeDiv[pitch] = {};
-            keysPlayedInTimeDiv[pitch].pitch = pitch;
-            keysPlayedInTimeDiv[pitch].start = Tone.Transport.seconds;
-        }
-    }
-
-    keyboard.keyUp = function(pitch, duration) {
-        playingTimer = 0;
-
-        if(!isAIPlaying) {
-            if (pitch in keysPlayedInTimeDiv) {
-                keysPlayedInTimeDiv[pitch].end = Tone.Transport.seconds;
-                keysPlayed.push(keysPlayedInTimeDiv[pitch]);
-            }
-        }
-    }
-}
-
-function startAIPart(part) {
-    var evIx = 0;
-
-    console.log(part)
     Tone.Transport.scheduleRepeat(function(time) {
-        if(!isAIPlaying)
-            return;
+        if(score[scIx] == null) {
+            console.log("SCORE IS OVER!");
+            return
+        }
 
-        var duration = "4n";
-        var velocity = 1.0
+        if(evIx >= score[scIx].notes.length) {
+            evIx = 0;
 
-        if(evIx < part.length) {
-            if(part[evIx][0] == ".") {
-                evIx++;
-            }
-            else {
-                while(evIx < part.length && part[evIx][0] != ".") {
-                    var ev = part[evIx].split("_");
+            score[scIx].notes = [];
+            score[scIx].sentiment = "";
 
-                    switch (part[evIx][0]) {
-                      case "n":
-                        console.log("PLAY NOTE: " + part[evIx]);
-                        var pitch = parseInt(ev[1]);
-                        keyboard.playKeyWithPitch(pitch, Tone.Time(duration).toSeconds(), velocity);
-                        break;
-                      case "d":
-                        duration = ev[1] + "n";
-                        break;
-                      case "v":
-                        velocity = parseInt(ev[1])/MAX_VELOCITY;
-                        break;
-                      case "t":
-                        var tempo = parseInt(ev[1]);
-                        if(tempo >= 20) {
-                            Tone.Transport.bpm.value = tempo;
-                        }
-                        break;
-                    }
+            scIx = (scIx + 1) % score.length;
+        }
 
-                    evIx++;
+        if(score[scIx].notes[evIx] != null && score[scIx].notes[evIx] == ".") {
+            evIx++;
+        }
+
+        while(score[scIx].notes[evIx] != null && score[scIx].notes[evIx] != ".") {
+            var ev = score[scIx].notes[evIx].split("_");
+
+            switch (ev[0]) {
+              case "n":
+                var pitch = parseInt(ev[1]);
+                var note = Tone.Frequency(pitch, "midi").toNote();
+                sampler.triggerAttackRelease(note, duration, Tone.Transport.now(), velocity);
+
+                var noteColor = greenPart;
+                if (score[scIx].sentiment == "negative") {
+                    noteColor = redPart;
                 }
-            }
-        }
-        else {
-            console.log("AI STOP!");
-            isAIPlaying = false;
 
-            Tone.Transport.bpm.value = 120;
-            Tone.Transport.cancel();
-            Tone.Transport.start();
-
-            background(20, 20, 20, 255);
-        }
-    }, baseTimeDiv.toString() + "n");
-}
-
-// ----------------------------------------
-// DRAWING FUNCTIONS
-// ----------------------------------------
-
-function draw() {
-    if(isMainStarted) {
-        var dt = (window.performance.now() - canvas._pInst._lastFrameTime)/1000;
-
-        update(dt);
-
-        keyboard.update(dt, isMousePressed);
-        keyboard.draw();
-    }
-}
-
-// ----------------------------------------
-// UPDATE FUNCTIONS
-// ----------------------------------------
-
-function update(dt) {
-    playingTimer += dt;
-    if(playingTimer > generationTime) {
-        if(keysPlayed.length > 0 && !isAIPlaying) {
-            console.log("AI PLAY!");
-            noteSequence = keys2NoteSequence(keysPlayed);
-            console.log(noteSequence);
-
-            isAIPlaying = true;
-            aiPlayingTimer = 0;
-
-            sendNoteSequence(noteSequence, genSequenceLen, generationCallback);
-
-            keysPlayed = [];
-            keysPlayedInTimeDiv = {};
-        }
-
-        playingTimer = 0;
-    }
-
-    if(isAIPlaying) {
-        // Animate background
-        var from = color(20, 20, 20, 255);
-        var to   = color(80, 80, 80, 255);
-
-        aiPlayingTimer += dt * 5;
-        var final = lerpColor(from, to, sin(aiPlayingTimer));
-
-        background(final);
-    }
-}
-
-// ----------------------------------------
-// CALLBACK FUNCTIONS
-// ----------------------------------------
-
-function generationCallback(generatedSequence) {
-    var part = generatedSequence.split(" ");
-    startAIPart(part);
-}
-
-function keys2NoteSequence(keysPlayed) {
-    var lastNoteStart = 0;
-
-    keysPlayed.sort(function (a, b) {
-        return a.start - b.start;
-    });
-
-    var lastDuration = ""
-    var noteSequence = "v_100 t_120 "
-
-    for(var i = 0; i < keysPlayed.length; i++) {
-        var duration = Math.round((keysPlayed[i].end - keysPlayed[i].start) * 100)/100;
-        duration = Tone.Time(duration).toNotation()[0];
-
-        if(duration != lastDuration) {
-          noteSequence += "d_" + duration + " "
-        }
-
-        if(i > 0) {
-            notesDist = Math.abs(keysPlayed[i].start - lastNoteStart);
-
-            if(notesDist > Tone.Time("16n").toSeconds()) {
-                nRests = Math.ceil(notesDist/Tone.Time("16n").toSeconds())
-                for(var j = 0; j < nRests; j++) {
-                    noteSequence += ". ";
+                noteSystem.shoot(pitch, noteLength, velocity, noteColor);
+                break;
+              case "d":
+                // Add dots to note
+                dots = "";
+                for (var i = 0; i < Math.min(1, parseInt(ev[2])); i++) {
+                    dots = dots + ".";
                 }
+
+                if(ev[1] != "0") {
+                    noteLength = 16/parseInt(ev[1]);
+                    duration = ev[1] + "n" + dots;
+                }
+
+                break;
+              case "v":
+                velocity = parseInt(ev[1])/MAX_VELOCITY;
+                break;
+              case "t":
+                if(parseInt(ev[1]) >= 20) {
+                    tempo = parseInt(ev[1]);
+                    Tone.Transport.bpm.value = tempo;
+                }
+                break;
             }
+
+            evIx++;
         }
-
-        noteSequence += "n_" + keysPlayed[i].pitch + " ";
-
-        lastNoteStart = keysPlayed[i].start;
-        lastDuration = duration
-    }
-
-    noteSequence += ".";
-    return noteSequence;
+    }, baseTimeDiv);
 }
 
-// ----------------------------------------
-// IO FUNCTIONS
-// ----------------------------------------
-
-function mousePressed() {
-    if(!isAIPlaying) {
-        isMousePressed = true;
-    }
-}
-
-function mouseReleased() {
-    isMousePressed = false;
-}
-
-function keyPressed() {
-    if(!isAIPlaying) {
-        keyboard.keyPressed(keyCode);
-    }
-}
-
-function keyReleased() {
-    keyboard.keyReleased(keyCode);
-}
-
-function windowResized() {
-  resizeCanvas(windowWidth - 20, windowHeight - 20);
-  button.position(width/2 - 100, height/2 - 50, 200, 100);
-}
+var sampler = new Tone.Sampler({
+    "A0" : "A0.[mp3|ogg]",
+    "C1" : "C1.[mp3|ogg]",
+    "D#1" : "Ds1.[mp3|ogg]",
+    "F#1" : "Fs1.[mp3|ogg]",
+    "A1" : "A1.[mp3|ogg]",
+    "C2" : "C2.[mp3|ogg]",
+    "D#2" : "Ds2.[mp3|ogg]",
+    "F#2" : "Fs2.[mp3|ogg]",
+    "A2" : "A2.[mp3|ogg]",
+    "C3" : "C3.[mp3|ogg]",
+    "D#3" : "Ds3.[mp3|ogg]",
+    "F#3" : "Fs3.[mp3|ogg]",
+    "A3" : "A3.[mp3|ogg]",
+    "C4" : "C4.[mp3|ogg]",
+    "D#4" : "Ds4.[mp3|ogg]",
+    "F#4" : "Fs4.[mp3|ogg]",
+    "A4" : "A4.[mp3|ogg]",
+    "C5" : "C5.[mp3|ogg]",
+    "D#5" : "Ds5.[mp3|ogg]",
+    "F#5" : "Fs5.[mp3|ogg]",
+    "A5" : "A5.[mp3|ogg]",
+    "C6" : "C6.[mp3|ogg]",
+    "D#6" : "Ds6.[mp3|ogg]",
+    "F#6" : "Fs6.[mp3|ogg]",
+    "A6" : "A6.[mp3|ogg]",
+    "C7" : "C7.[mp3|ogg]",
+    "D#7" : "Ds7.[mp3|ogg]",
+    "F#7" : "Fs7.[mp3|ogg]",
+    "A7" : "A7.[mp3|ogg]",
+    "C8" : "C8.[mp3|ogg]"
+}, {
+    "release" : 1,
+    "baseUrl" : "./static/audio/salamander/"
+}).toMaster();

@@ -1,86 +1,23 @@
+import json
+import argparse
 import flask      as fl
 import sentneuron as sn
 import music21    as m21
 
+from flask_socketio import SocketIO
+
+NOTE_SEQUENCE_LENGTH = 256
+
 app = fl.Flask(__name__)
+socketio = SocketIO(app)
 
-@app.route('/')
-def index():
-    return fl.render_template('index.html')
+hidden_cell = None
 
-@app.route('/generate', methods=['POST', 'GET'])
-def upload():
-    if fl.request.method == 'POST':
-        noteSequence = fl.request.form['noteSequence'].split(" ")
-        genSequenceLen = int(fl.request.form['genSequenceLen'])
-        return generate(noteSequence, genSequenceLen)
-
-    return fl.render_template('index.html')
-
-def binarySearch(target, alist):
-    first = 0
-    last = len(alist)-1
-
-    foundPos = -1;
-
-    while first <= last and foundPos == -1:
-        midpoint = (first + last)//2
-
-        value = "_".join(alist[midpoint].split("_")[:-1])
-        if target == value:
-            foundPos = midpoint;
-        else:
-            if target < value:
-                last = midpoint - 1
-            else:
-                if target > value:
-                    first = midpoint+1
-    return foundPos
-
-def findClosestSymbolInVocab(note, vocab):
-    velocity = int(note.split("_")[-1])
-    noteWithoutVel = "_".join(note.split("_")[:-1])
-
-    foundPos = binarySearch(noteWithoutVel, vocab)
-    if foundPos != -1:
-        i = foundPos
-
-        possibleVels = []
-        while "_".join(vocab[i].split("_")[:-1]) == noteWithoutVel:
-            possibleVels.append(int(vocab[i].split("_")[-1]))
-            i += 1
-
-        clossestVel = min(possibleVels, key=lambda x:abs(x - velocity))
-        return noteWithoutVel + "_" + str(clossestVel)
-
-    return note
-
-def generate(sample_init, sample_len):
-    print(sample_init)
-
-    # Replace duration type to number to easily play with tone.js
-    for i in range(len(sample_init)):
-        if sample_init[i][0] == "d":
-            # Replace duration type to number to easily play with tone.js
-            duration = sample_init[i].split("_")[1]
-            try:
-                d_type = m21.duration.convertQuarterLengthToType(4./float(duration))
-            except:
-                print("Can't convert duration to type:" + str(duration) + ". Assuming quarter note.")
-                d_type = "quarter"
-
-            sample_init[i] = sample_init[i].replace("d_" + duration, "d_" + d_type)
-            # sample_init[i] = findClosestSymbolInVocab(sample_init[i], seq_data.vocab)
-
-    print(sample_init)
-
-    sample = neuron.sample(seq_data, sample_init=sample_init, sample_len=sample_len)
-    seq_data.write(sample, "../../output/interactive")
-
+def transform_durations(sample):
     sample = sample.split(" ")
 
     for i in range(len(sample)):
-        if sample[i][0] == "d":
+        if sample[i] != "" and sample[i][0] == "d":
             # Replace duration type to number to easily play with tone.js
             duration = sample[i].split("_")[1]
             d_number = int(m21.duration.convertTypeToNumber(duration))
@@ -88,7 +25,59 @@ def generate(sample_init, sample_len):
 
     return " ".join(sample)
 
-# Load pre-trained model
-neuron, seq_data = sn.utils.load_generative_model('../../trained_models/vgmidi/vgmidi_shards_2048')
+@app.route('/')
+def index():
+    return fl.render_template('index.html')
 
-app.run()
+@socketio.on('generate')
+def handle_my_custom_event(data):
+    global hidden_cell
+
+    # Parse init sequence
+    init = seq_data.str2symbols(data["init"])
+    init = list(filter(('').__ne__, init))
+
+    override = {}
+    if data["sentiment"] == "positive":
+        override = pos_weights
+    elif data["sentiment"] == "negative":
+        override = neg_weights
+
+    print(data["sentiment"])
+    print(override)
+
+    # Initialize LSTM hidden states
+    sample = neuron.generate_sequence(seq_data, init, NOTE_SEQUENCE_LENGTH, opt.temp, override=override, append_init=False)
+
+    if data["first"]:
+        sample = init + sample.split(" ")
+        sample = " ".join(sample)
+
+    # Emit notes back to client
+    socketio.emit('notes', (sample, transform_durations(sample), data["sentiment"]))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='generate_sequence.py')
+
+    parser.add_argument('-model_path' , type=str,   required=True, help="Model metadata path."      )
+    parser.add_argument('-temp'       , type=float, default=1.0,   help="Temperature for sampling." )
+    parser.add_argument('-neg_weights', type=str,   default="" ,   help="Numpy array file path to override neurons and generate negative content." )
+    parser.add_argument('-pos_weights', type=str,   default="" ,   help="Numpy array file path to override neurons and generate positive content." )
+    opt = parser.parse_args()
+
+    # Load generative LSTM
+    neuron, seq_data = sn.utils.load_generative_model(opt.model_path)
+
+    # Override given neurons
+    neg_weights = {}
+    if opt.neg_weights != "":
+        neg_weights = json.loads(open(opt.neg_weights).read())
+        neg_weights = {int(k):v for k,v in neg_weights.items()}
+
+    pos_weights = {}
+    if opt.pos_weights != "":
+        pos_weights = json.loads(open(opt.pos_weights).read())
+        pos_weights = {int(k):v for k,v in pos_weights.items()}
+
+    # Start app
+    socketio.run(app)

@@ -51,6 +51,11 @@ class SentimentNeuron(nn.Module):
         # Set this model to run in the given device
         self.to(device=self.device)
 
+    def init_hidden(self, batch_size=1):
+        h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
+        c = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
+        return (h, c)
+
     def forward(self, x, h):
         # First layer maps the input layer to the hidden layer
         emb_x = self.i2h(x)
@@ -105,7 +110,7 @@ class SentimentNeuron(nn.Module):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
-        h_init = self.__init_hidden(batch_size)
+        h_init = self.init_hidden(batch_size)
         shard_content = seq_dataset.read(test_shard_path)
 
         sequence = seq_dataset.encode_sequence(shard_content)
@@ -148,7 +153,7 @@ class SentimentNeuron(nn.Module):
         for epoch in range(epochs):
             # Iterate on each shard of the dataset
             for shard in seq_dataset.data:
-                h_init = self.__init_hidden(batch_size)
+                h_init = self.init_hidden(batch_size)
 
                 # Start optimizer with initial learning rate every epoch
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
@@ -215,22 +220,17 @@ class SentimentNeuron(nn.Module):
         sequence = sequence.view(batch_size, -1).t().contiguous()
         return sequence
 
-    def __init_hidden(self, batch_size=1):
-        h = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
-        c = torch.zeros(self.n_layers, batch_size, self.hidden_size, device=self.device)
-        return (h, c)
-
     def __clip_gradient(self, clip):
         for p in self.parameters():
             p.grad.data = p.grad.data.clamp(-clip, clip)
 
-    def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=1.0, override={}):
+    def generate_sequence(self, seq_dataset, sample_init, sample_len, temperature=1.0, override={}, append_init=True):
         with torch.no_grad():
             # Initialize the sequence
             seq = []
 
             # Create a new hidden state
-            hidden_cell = self.__init_hidden()
+            hidden_cell = self.init_hidden()
 
             xs = seq_dataset.encode_sequence(sample_init)
             batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
@@ -238,7 +238,8 @@ class SentimentNeuron(nn.Module):
             for t in range(batch.size(0)):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
                 x = batch[t].data[0].item()
-                seq.append(x)
+                if append_init:
+                    seq.append(x)
 
             for t in range(sample_len):
                 # Override salient neurons
@@ -267,7 +268,7 @@ class SentimentNeuron(nn.Module):
             track_indices_values = [[] for i in range(len(track_indices))]
 
             # Create a new hidden state
-            hidden_cell = self.__init_hidden()
+            hidden_cell = self.init_hidden()
 
             xs = seq_dataset.encode_sequence(sequence)
             batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
