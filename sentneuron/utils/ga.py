@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=10, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
@@ -39,13 +39,18 @@ class GeneticAlgorithm:
             split = gen_seq.split(" ")
             split = list(filter(('').__ne__, split))
 
-            if self.isSilence(split):
-                fitness.append(1.)
-            else:
-                trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
-                guess = self.logreg.predict([trans_seq])[0]
+            # if self.isSilence(split):
+            #     fitness.append(1.)
+            # else:
+            trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
+            guess = self.logreg.predict([trans_seq])[0]
 
-                fitness.append((guess - self.ofInterest)**2)
+            fitness.append((guess - self.ofInterest)**2)
+
+        # Penalize this individual with the prediction accuracy
+        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11.mid"
+        accuracy = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
+        print("accuracy", accuracy)
 
         return sum(fitness)/len(fitness)
         # return (ind - self.ofInterest)**2
