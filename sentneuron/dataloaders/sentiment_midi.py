@@ -10,14 +10,14 @@ class SentimentMidi:
         self.data_path = data_path
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
 
-        xs = self.unpack_fold(self.data)
-        ys = self.unpack_fold(self.data)
-
+        xs = [dp[0] for dp in self.data]
+        ys = [dp[1] for dp in self.data]
         self.split = StratifiedKFold(k, True, 42).split(xs, ys)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
         data = csv.DictReader(csv_file)
+
 
         sentiment_data = []
 
