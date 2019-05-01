@@ -3,7 +3,7 @@ import html
 import math
 import random
 
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 
 class SentimentMidi:
     def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False):
