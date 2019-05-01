@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=10, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
