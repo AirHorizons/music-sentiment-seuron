@@ -48,7 +48,7 @@ class GeneticAlgorithm:
             fitness.append((guess - self.ofInterest)**2)
 
         # Penalize this individual with the prediction accuracy
-        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11.mid"
+        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11.txt"
         accuracy = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
         print("accuracy", accuracy)
 
