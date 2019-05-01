@@ -120,7 +120,7 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     print("test  y negative", len(np.where(np.array(teY) == 0.)[0]))
     print("test  y positive", len(np.where(np.array(teY) == 1.)[0]))
 
-    sentneuron_ixs = get_top_k_neuron_weights(logreg_model, k=min(4, len(n_not_zero)))
+    sentneuron_ixs = get_top_k_neuron_weights(logreg_model, k=len(n_not_zero))
     print(sentneuron_ixs)
 
     plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")

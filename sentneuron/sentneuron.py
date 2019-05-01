@@ -246,7 +246,7 @@ class SentimentNeuron(nn.Module):
                 hidden, cell = hidden_cell
                 for neuron, value in override.items():
                     last = hidden.size(0) - 1
-                    hidden[last,0,neuron] = value
+                    hidden[last,0,neuron] += value
                 hidden_cell = (hidden, cell)
 
                 x = torch.tensor([x], dtype=torch.long, device=self.device)

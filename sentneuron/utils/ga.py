@@ -27,6 +27,7 @@ class GeneticAlgorithm:
     def calcFitness(self, ind, experiments=30):
         fitness = []
 
+        # Override neuron weights with the gens of the individual
         override_neurons = {}
         for i in range(len(self.neuron_ix)):
             n_ix = self.neuron_ix[i]
@@ -47,12 +48,11 @@ class GeneticAlgorithm:
 
             fitness.append((guess - self.ofInterest)**2)
 
-        # Penalize this individual with the prediction accuracy
+        # Penalize this individual with the prediction error
         validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11.txt"
-        accuracy = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
-        print("accuracy", accuracy)
+        error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
-        return sum(fitness)/len(fitness)
+        return error + (sum(fitness)/len(fitness))
         # return (ind - self.ofInterest)**2
 
     def evaluate(self):
