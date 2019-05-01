@@ -15,7 +15,10 @@ This projects comes with two test scripts: one for training a new model and one 
 pre-trained models. Both scripts have an example of sampling sequences from the models.
 
 To train a new model:
+
+```
 $ python examples/train_generative_txt.py
+```
 
 After training, this script stores the model inside the "trained_models/" folder. You can
 then load it and sample sequences (either midi or text) using the following example:

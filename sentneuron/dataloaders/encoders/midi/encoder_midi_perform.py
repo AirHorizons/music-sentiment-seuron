@@ -16,6 +16,9 @@ class EncoderMidiPerform(EncoderMidi):
         # Get piano roll from midi stream
         performances = self.midi2piano_roll_with_performance(midi_stream, sample_freq=4, piano_range=128, modulate_range=1, stretching_range=1)
 
+        return " ".join(self.performances2encoding(performances))
+
+    def performances2encoding(self, performances):
         # Transform piano roll into a list of notes in string format
         lastVelocity = -1
         lastDuration = -1.0
@@ -55,7 +58,7 @@ class EncoderMidiPerform(EncoderMidi):
 
             perform_i += 1
 
-        return " ".join(final_encoding)
+        return final_encoding
 
     def encoding2midi(self, note_encoding, ts_duration=0.25):
         notes = []

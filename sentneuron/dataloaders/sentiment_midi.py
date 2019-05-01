@@ -9,7 +9,11 @@ class SentimentMidi:
     def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False):
         self.data_path = data_path
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
-        self.split = KFold(k, True, 42).split(self.data)
+
+        xs = self.unpack_fold(self.data)
+        ys = self.unpack_fold(self.data)
+
+        self.split = StratifiedKFold(k, True, 42).split(xs, ys)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
