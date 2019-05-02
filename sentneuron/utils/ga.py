@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=10, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
@@ -13,8 +13,8 @@ class GeneticAlgorithm:
         self.logreg       = logreg
         self.domain       = (-2, 2)
         self.neuron_ix    = neuron_ix
-        self.fits = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
-        print(self.fits)
+        self.inds = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
+        print(self.inds)
 
     def isSilence(self, sequence):
         non_silence_symbs = 0
@@ -24,8 +24,8 @@ class GeneticAlgorithm:
 
         return non_silence_symbs == 0
 
-    def calcFitness(self, ind, experiments=30):
-        fitness = []
+    def calcFitness(self, ind, experiments=3):
+        label_guess = []
 
         # Override neuron weights with the gens of the individual
         override_neurons = {}
@@ -46,19 +46,21 @@ class GeneticAlgorithm:
             trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
             guess = self.logreg.predict([trans_seq])[0]
 
-            fitness.append((guess - self.ofInterest)**2)
+            label_guess.append((guess - self.ofInterest)**2)
 
         # Penalize this individual with the prediction error
-        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11.txt"
+        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_short.txt"
         error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
-        return error + (sum(fitness)/len(fitness))
+        fitness = error + (sum(label_guess)/len(label_guess))
+        return 2.0 - fitness
         # return (ind - self.ofInterest)**2
 
     def evaluate(self):
         fitness = []
         for i in range(self.popSize):
-            fitness.append(self.calcFitness(self.fits[i]))
+            print("---->", "Evaluating ind", i)
+            fitness.append(self.calcFitness(self.inds[i]))
         return np.array(fitness)
 
     def cross(self, nextPop):
@@ -70,45 +72,46 @@ class GeneticAlgorithm:
         for i in range(self.elitism, self.popSize):
             for gene in range(self.indSize):
                 if np.random.random() < self.mutRate:
-                    self.fits[i][gene] = np.random.uniform(self.domain[0], self.domain[1])
+                    self.inds[i][gene] = np.random.uniform(self.domain[0], self.domain[1])
 
     def select(self, fitness):
-        self.fits = self.fits[fitness.argsort()]
-        fitness = fitness[fitness.argsort()]
+        descending_args = np.argsort(-fitness)
+        sorted_inds = list(self.inds[descending_args])
+        sorted_fits = list(fitness[descending_args])
 
         nextPop = []
         for i in range(self.popSize):
             if i < self.elitism:
-                nextPop.append(self.fits[i])
+                nextPop.append(sorted_inds[i])
             else:
-                nextPop.append(self.roullete_wheel(fitness))
+                nextPop.append(self.roullete_wheel(sorted_inds, sorted_fits))
 
         return np.array(nextPop)
 
-    def roullete_wheel(self, fitness):
-        pick = np.random.uniform(0, sum(fitness))
+    def roullete_wheel(self, sorted_inds, sorted_fits):
+        pick = np.random.uniform(0, sum(sorted_fits))
 
         current = 0
         for i in range(self.popSize):
-            current += fitness[i]
-            if current > pick:
-                return self.fits[i]
+            current += sorted_fits[i]
+            if current >= pick:
+                return sorted_inds[i]
 
     def evolve(self, epochs=10):
         for i in range(epochs):
             print("-> Epoch", i)
             fitness = self.evaluate()
             nextPop = self.select(fitness)
-            print(self.fits)
+            print(self.inds)
             print(fitness)
             self.cross(nextPop)
             self.mutate(nextPop)
 
-            self.fits = nextPop
+            self.inds = nextPop
 
         fitness = self.evaluate()
         best_fit = fitness[fitness.argsort()][0]
-        best_ind = self.fits[fitness.argsort()][0]
+        best_ind = self.inds[fitness.argsort()][0]
 
         print("best ind", best_ind)
         print("best fit", best_fit)
