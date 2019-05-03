@@ -107,7 +107,7 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         testPos = len(np.where(np.array(teY) == 1.)[0])
         print("test  y positive", testPos)
 
-        accuracy.append(testNeg/testPos)
+        accuracy.append(acc)
         test_ix += 1
 
     best_test_ix = np.argmax(accuracy)
