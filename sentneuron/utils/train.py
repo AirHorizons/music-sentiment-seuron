@@ -95,7 +95,19 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
         print('Regularization coef', c)
         print('Features used', len(n_not_zero))
 
-        accuracy.append(acc)
+        trainNeg = len(np.where(np.array(trY) == 0.)[0])
+        print("train y negative", trainNeg)
+
+        trainPos = len(np.where(np.array(trY) == 1.)[0])
+        print("train y positive", trainPos)
+
+        testNeg = len(np.where(np.array(teY) == 0.)[0])
+        print("test  y negative", testNeg)
+
+        testPos = len(np.where(np.array(teY) == 1.)[0])
+        print("test  y positive", testPos)
+
+        accuracy.append(testNeg/testPos)
         test_ix += 1
 
     best_test_ix = np.argmax(accuracy)
@@ -114,11 +126,6 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
     print('Test accuracy', acc)
     print('Regularization coef', c)
     print('Features used', len(n_not_zero))
-
-    print("train y negative", len(np.where(np.array(trY) == 0.)[0]))
-    print("train y positive", len(np.where(np.array(trY) == 1.)[0]))
-    print("test  y negative", len(np.where(np.array(teY) == 0.)[0]))
-    print("test  y positive", len(np.where(np.array(teY) == 1.)[0]))
 
     sentneuron_ixs = get_top_k_neuron_weights(logreg_model, k=len(n_not_zero))
     print(sentneuron_ixs)

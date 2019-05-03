@@ -11,7 +11,7 @@ opt = parser.parse_args()
 neuron, seq_data = sn.utils.load_generative_model(opt.model_path)
 
 # Load sentiment data from given path
-sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", pad=False)
+sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", pad=False, balance=True)
 sn.utils.train_unsupervised_classification_model(neuron, seq_data, sent_data, opt.results_path)
 
 # Sampling
