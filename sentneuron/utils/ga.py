@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=10, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
@@ -24,7 +24,7 @@ class GeneticAlgorithm:
 
         return non_silence_symbs == 0
 
-    def calcFitness(self, ind, experiments=3):
+    def calcFitness(self, ind, experiments=30):
         label_guess = []
 
         # Override neuron weights with the gens of the individual
@@ -49,7 +49,7 @@ class GeneticAlgorithm:
             label_guess.append((guess - self.ofInterest)**2)
 
         # Penalize this individual with the prediction error
-        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_short.txt"
+        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_shortest.txt"
         error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
         fitness = error + (sum(label_guess)/len(label_guess))
@@ -109,9 +109,12 @@ class GeneticAlgorithm:
 
             self.inds = nextPop
 
+        # Get best individual
         fitness = self.evaluate()
-        best_fit = fitness[fitness.argsort()][0]
-        best_ind = self.inds[fitness.argsort()][0]
+        descending_args = np.argsort(-fitness)
+
+        best_fit = fitness[descending_args][0]
+        best_ind = self.inds[descending_args][0]
 
         print("best ind", best_ind)
         print("best fit", best_fit)
