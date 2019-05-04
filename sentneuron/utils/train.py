@@ -68,7 +68,26 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
 
         print('%05.3f Test accuracy' % score)
 
-def train_unsupervised_classification_model(neuron, seq_data, sent_data, results_path):
+def evolve_weights(neuron, seq_data, results_path):
+    n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
+    sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
+    print(sentneuron_ixs)
+
+    # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
+    # plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
+
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
+    best_ind, best_fit = genAlg.evolve()
+
+    override = {}
+    for i in range(len(sentneuron_ixs)):
+        override[int(sentneuron_ixs[i])] = best_ind[i]
+
+    print(override)
+    with open('../output/ga_best.json', 'w') as fp:
+        json.dump(override, fp)
+
+def train_unsupervised_classification_model(neuron, seq_data, sent_data):
     test_ix = 0
 
     accuracy = []
@@ -89,29 +108,14 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
 
         # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
-        acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
+        acc = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
         print('Test accuracy', acc)
-        print('Regularization coef', c)
-        print('Features used', len(n_not_zero))
-
-        trainNeg = len(np.where(np.array(trY) == 0.)[0])
-        print("train y negative", trainNeg)
-
-        trainPos = len(np.where(np.array(trY) == 1.)[0])
-        print("train y positive", trainPos)
-
-        testNeg = len(np.where(np.array(teY) == 0.)[0])
-        print("test  y negative", testNeg)
-
-        testPos = len(np.where(np.array(teY) == 1.)[0])
-        print("test  y positive", testPos)
-
         accuracy.append(acc)
         test_ix += 1
 
     best_test_ix = np.argmax(accuracy)
-    print("---> Test", best_test_ix)
+    print("---> Best Test:", best_test_ix)
 
     train, test = data_split[best_test_ix]
     trX, trY = sent_data.unpack_fold(train)
@@ -121,28 +125,9 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data, results
 
     trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX_' + str(best_test_ix) + '.npy'))
     teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(best_test_ix) + '.npy'))
-    acc, c, n_not_zero, logreg_model = neuron.fit_sentiment(trXt, trY, teXt, teY)
+    acc = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
-    print('Test accuracy', acc)
-    print('Regularization coef', c)
-    print('Features used', len(n_not_zero))
-
-    sentneuron_ixs = get_top_k_neuron_weights(logreg_model, k=len(n_not_zero))
-    print(sentneuron_ixs)
-
-    # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
-    plot_weight_contribs_and_save(results_path, logreg_model.coef_, fold="fold_")
-
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, logreg_model, ofInterest=0.0)
-    best_ind, best_fit = genAlg.evolve()
-
-    override = {}
-    for i in range(len(sentneuron_ixs)):
-        override[int(sentneuron_ixs[i])] = best_ind[i]
-
-    print(override)
-    with open('../output/ga_best.json', 'w') as fp:
-        json.dump(override, fp)
+    return acc
 
 def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
     if(os.path.isfile(xs_filename)):
@@ -153,21 +138,3 @@ def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
         np.save(xs_filename, xs)
 
     return xs
-
-def get_top_k_neuron_weights(logreg_model, k=1):
-    weights = logreg_model.coef_.T
-    weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
-
-    if k == 1:
-        k_indices = np.array([np.argmax(weight_penalties)])
-    elif k >= np.log(len(weight_penalties)):
-        k_indices = np.argsort(weight_penalties)[-k:][::-1]
-    else:
-        k_indices = np.argpartition(weight_penalties, -k)[-k:]
-        k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
-
-    return k_indices
-
-def get_neuron_values_for_a_sequence(neuron, seq_data, sequence, track_indices):
-    _ ,tracked_indices_values = neuron.transform_sequence(seq_data, sequence, track_indices)
-    return np.array([np.array(vals).flatten() for vals in tracked_indices_values])

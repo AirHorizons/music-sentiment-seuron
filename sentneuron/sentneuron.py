@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 class SentimentNeuron(nn.Module):
     def __init__(self, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0):
         super(SentimentNeuron, self).__init__()
+        self.sent_classfier = None
 
         # Set running device to "cpu" or "cuda" (if available)
         self.device = torch.device("cpu")
@@ -98,41 +99,53 @@ class SentimentNeuron(nn.Module):
 
         c = C[np.argmax(scores)]
 
-        logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
-        logreg_model.fit(trX, trY)
+        self.sent_classfier = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
+        self.sent_classfier.fit(trX, trY)
 
-        score = logreg_model.score(teX, teY) * 100.
-        n_not_zero = np.argwhere(logreg_model.coef_)
+        score = self.sent_classfier.score(teX, teY) * 100.
+        return score
 
-        return score, c, n_not_zero, logreg_model
+    def predict_sentiment(self, seq_dataset, sequence):
+        with torch.no_grad():
+            if self.sent_classfier == None:
+                return None;
+
+            split = sequence.split(" ")
+            split = list(filter(('').__ne__, split))
+
+            trans_seq, _ = self.transform_sequence(seq_dataset, split)
+            guess = self.sent_classfier.predict([trans_seq])[0]
+
+            return guess
 
     def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
-        # Loss function
-        loss_function = nn.CrossEntropyLoss()
+        with torch.no_grad():
+            # Loss function
+            loss_function = nn.CrossEntropyLoss()
 
-        h_init = self.init_hidden(batch_size)
-        shard_content = seq_dataset.read(test_shard_path)
+            h_init = self.init_hidden(batch_size)
+            shard_content = seq_dataset.read(test_shard_path)
 
-        sequence = seq_dataset.encode_sequence(shard_content)
-        sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
+            sequence = seq_dataset.encode_sequence(shard_content)
+            sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
 
-        n_batches = sequence.size(0)//seq_length
+            n_batches = sequence.size(0)//seq_length
 
-        loss_avg = 0
-        for batch_ix in range(n_batches - 1):
-            batch = sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long()
+            loss_avg = 0
+            for batch_ix in range(n_batches - 1):
+                batch = sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long()
 
-            h = h_init
+                h = h_init
 
-            loss = 0
-            for t in range(seq_length):
-                h, y = self(batch[t], h)
-                loss += loss_function(y, batch[t+1])
+                loss = 0
+                for t in range(seq_length):
+                    h, y = self(batch[t], h)
+                    loss += loss_function(y, batch[t+1])
 
-            h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
-            loss_avg += loss.item()/seq_length
+                h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
+                loss_avg += loss.item()/seq_length
 
-        return loss_avg/n_batches
+            return loss_avg/n_batches
 
     def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
         try:
@@ -277,13 +290,13 @@ class SentimentNeuron(nn.Module):
                 hidden_cell, y = self.forward(batch[t], hidden_cell)
 
                 hidden, cell = hidden_cell
-                trans_sequence = np.squeeze(hidden.data.cpu().numpy())
+                trans_sequence = np.squeeze(cell.data.cpu().numpy())
                 for i, index in enumerate(track_indices):
                     track_indices_values[i].append(trans_sequence[index])
 
             # Use cell state as feature vector fot the sentence
             final_hidden, final_cell = hidden_cell
-            trans_sequence = np.squeeze(final_hidden.data.cpu().numpy())
+            trans_sequence = np.squeeze(final_cell.data.cpu().numpy())
 
             return trans_sequence, track_indices_values
 
@@ -314,3 +327,21 @@ class SentimentNeuron(nn.Module):
             json.dump(meta_data, fp)
 
         print("Saved model:", model_filename)
+
+    def get_top_k_neuron_weights(self, k=1):
+        weights = self.sent_classfier.coef_.T
+        weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+        if k == 1:
+            k_indices = np.array([np.argmax(weight_penalties)])
+        elif k >= np.log(len(weight_penalties)):
+            k_indices = np.argsort(weight_penalties)[-k:][::-1]
+        else:
+            k_indices = np.argpartition(weight_penalties, -k)[-k:]
+            k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
+
+        return k_indices
+
+    def get_neuron_values_for_a_sequence(self, seq_data, sequence, track_indices):
+        _ ,tracked_indices_values = self.transform_sequence(seq_data, sequence, track_indices)
+        return np.array([np.array(vals).flatten() for vals in tracked_indices_values])

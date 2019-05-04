@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, logreg, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
@@ -10,7 +10,6 @@ class GeneticAlgorithm:
         self.elitism      = elitism
         self.neuron       = neuron
         self.seq_data     = seq_data
-        self.logreg       = logreg
         self.domain       = (-5, 5)
         self.neuron_ix    = neuron_ix
         self.inds = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
@@ -35,16 +34,8 @@ class GeneticAlgorithm:
 
         for i in range(experiments):
             ini_seq = self.seq_data.str2symbols(".")
-            gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 256, 1.0, override=override_neurons)
-
-            split = gen_seq.split(" ")
-            split = list(filter(('').__ne__, split))
-
-            # if self.isSilence(split):
-            #     fitness.append(1.)
-            # else:
-            trans_seq, _ = self.neuron.transform_sequence(self.seq_data, split)
-            guess = self.logreg.predict([trans_seq])[0]
+            gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
+            guess = self.neuron.predict_sentiment(self.seq_data, gen_seq)
 
             label_guess.append((guess - self.ofInterest)**2)
 
