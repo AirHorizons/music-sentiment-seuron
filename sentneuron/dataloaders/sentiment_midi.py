@@ -4,20 +4,16 @@ import math
 import random
 import numpy as np
 
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 from sklearn.utils import resample
 
 class SentimentMidi:
-    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False, balance=False, separateIds=False):
+    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, pad=False, balance=False, separate_pieces=False, k=10):
         self.data_path = data_path
 
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
         if balance:
             self.data = self.balance_dataset()
-
-        self.separateIds = separateIds
-        if self.separateIds:
-            self.data = self.separate_ids()
 
         ys = np.array([dp[2] for dp in self.data])
         posLabels = len(np.where(ys == 1.)[0])
@@ -26,7 +22,11 @@ class SentimentMidi:
         print("Total positive examples", posLabels)
         print("Total negative examples", negLabels)
 
-        self.split = StratifiedKFold(k, True, 42).split(self.data, ys)
+        self.separate_pieces = separate_pieces
+        if self.separate_pieces:
+            self.data = self.separate_ids()
+
+        self.split = KFold(k, True, 42).split(self.data)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
@@ -75,7 +75,7 @@ class SentimentMidi:
         xs = []
         ys = []
 
-        if self.separateIds:
+        if self.separate_pieces:
             for i in fold:
                 for sentence in self.data[i]:
                     id, x, y = sentence
@@ -101,7 +101,7 @@ class SentimentMidi:
 
         sentiment_data = []
         for p in sentences_per_id:
-            sentiment_data.append(sentiment_data[p])
+            sentiment_data.append(sentences_per_id[p])
 
         return sentiment_data
 
