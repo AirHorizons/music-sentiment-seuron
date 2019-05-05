@@ -8,23 +8,25 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.utils import resample
 
 class SentimentMidi:
-    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False, balance=False):
+    def __init__(self, data_path, x_col_name, y_col_name, id_col_name, k=10, pad=False, balance=False, separateIds=False):
         self.data_path = data_path
 
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
         if balance:
-            self.data = self.balance_dataset();
+            self.data = self.balance_dataset()
 
-        xs = np.array([dp[0] for dp in self.data])
-        ys = np.array([dp[1] for dp in self.data])
+        self.separateIds = separateIds
+        if self.separateIds:
+            self.data = self.separate_ids()
 
+        ys = np.array([dp[2] for dp in self.data])
         posLabels = len(np.where(ys == 1.)[0])
-        print("Total positive examples", posLabels)
-
         negLabels = len(np.where(ys == 0.)[0])
+
+        print("Total positive examples", posLabels)
         print("Total negative examples", negLabels)
 
-        self.split = StratifiedKFold(k, True, 42).split(xs, ys)
+        self.split = StratifiedKFold(k, True, 42).split(self.data, ys)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
@@ -33,6 +35,8 @@ class SentimentMidi:
         sentiment_data = []
 
         for row in data:
+            id = row[id_col_name]
+
             x = row[x_col_name]
             if pad:
                 max_len = self.find_longest_sequence_len(filepath, x_col_name)
@@ -44,7 +48,7 @@ class SentimentMidi:
             else:
                 y = 0
 
-            sentiment_data.append((x,y))
+            sentiment_data.append((id, x, y))
 
         csv_file.close()
         return sentiment_data
@@ -71,33 +75,57 @@ class SentimentMidi:
         xs = []
         ys = []
 
-        for i in fold:
-            # for sentence in self.data[i]:
-                # print(sentence)
-            piece, label = self.data[i]
-            xs.append(piece)
-            ys.append(label)
+        if self.separateIds:
+            for i in fold:
+                for sentence in self.data[i]:
+                    id, x, y = sentence
+                    xs.append(x)
+                    ys.append(y)
+        else:
+            for i in fold:
+                # for sentence in self.data[i]:
+                    # print(sentence)
+                id, x, y = self.data[i]
+                xs.append(x)
+                ys.append(y)
 
         return xs, ys
 
+    def separate_ids(self):
+        sentences_per_id = {}
+        for piece in self.data:
+            id, x, y = piece
+            if id not in sentences_per_id:
+                sentences_per_id[id] = []
+            sentences_per_id[id].append((id, x, y))
+
+        sentiment_data = []
+        for p in sentences_per_id:
+            sentiment_data.append(sentiment_data[p])
+
+        return sentiment_data
+
     def balance_dataset(self):
-        xs = np.array([dp[0] for dp in self.data])
-        ys = np.array([dp[1] for dp in self.data])
+        ids = np.array([dp[0] for dp in self.data])
+        xs  = np.array([dp[1] for dp in self.data])
+        ys  = np.array([dp[2] for dp in self.data])
 
         # Separate majority and minority classes
-        posLabels = np.where(ys == 1.)[0]
-        negLabels = np.where(ys == 0.)[0]
+        posIxs = np.where(ys == 1.)[0]
+        negIxs = np.where(ys == 0.)[0]
+
+        minClassIxs = negIxs
+        maxClassIxs = posIxs
+
+        if len(negIxs) > len(posIxs):
+            minClassIxs = posIxs
+            maxClassIxs = negIxs
+
+        maxClassData = [(xs[i], ys[i], ids[i]) for i in maxClassIxs]
+        minClassData = [(xs[i], ys[i], ids[i]) for i in minClassIxs]
 
         # Downsample majority class
-        posLabels_downsampled = resample(xs[posLabels], replace=False, n_samples=len(negLabels), random_state=42)
+        maxClassData_downsampled = resample(maxClassData, replace=False, n_samples=len(minClassData), random_state=42)
 
         # Combine minority class with downsampled majority class
-        balanced_data = []
-        for i in range(len(posLabels_downsampled)):
-            balanced_data.append((posLabels_downsampled[i], 1))
-
-        for i in range(len(xs[negLabels])):
-            balanced_data.append((xs[negLabels][i], 0))
-
-        print(len(balanced_data))
-        return balanced_data
+        return maxClassData_downsampled + minClassData
