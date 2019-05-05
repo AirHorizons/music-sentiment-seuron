@@ -121,8 +121,8 @@ class SentimentMidi:
             minClassIxs = posIxs
             maxClassIxs = negIxs
 
-        maxClassData = [(xs[i], ys[i], ids[i]) for i in maxClassIxs]
-        minClassData = [(xs[i], ys[i], ids[i]) for i in minClassIxs]
+        maxClassData = [(ids[i], xs[i], ys[i]) for i in maxClassIxs]
+        minClassData = [(ids[i], xs[i], ys[i]) for i in minClassIxs]
 
         # Downsample majority class
         maxClassData_downsampled = resample(maxClassData, replace=False, n_samples=len(minClassData), random_state=42)
