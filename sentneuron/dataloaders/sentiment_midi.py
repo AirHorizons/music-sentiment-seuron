@@ -14,7 +14,7 @@ class SentimentMidi:
 
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
         if balance:
-            self.data = self.balance_dataset()
+            self.data = self.balance_dataset(upsample=True)
 
         ys = np.array([dp[2] for dp in self.data])
         posLabels = len(np.where(ys == 1.)[0])
@@ -130,7 +130,7 @@ class SentimentMidi:
             # Downsample majority class
             minClassData_upsampled = resample(minClassData, replace=True, n_samples=len(maxClassData), random_state=42)
 
-            # Combine minority class with downsampled majority class
+            # Combine majority class with upsampled minority class
             return minClassData_upsampled + maxClassData
 
         # Downsample majority class
