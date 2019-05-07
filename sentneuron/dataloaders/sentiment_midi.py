@@ -5,6 +5,7 @@ import random
 import numpy as np
 
 from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.utils import resample
 
 class SentimentMidi:
@@ -25,8 +26,9 @@ class SentimentMidi:
         self.separate_pieces = separate_pieces
         if self.separate_pieces:
             self.data = self.separate_ids()
-
-        self.split = KFold(k, True, 42).split(self.data)
+            self.split = KFold(k, True, 42).split(self.data)
+        else:
+            self.split = StratifiedKFold(k, True, 42).split(self.data, ys)
 
     def load(self, filepath, x_col_name, y_col_name, id_col_name, pad=False):
         csv_file = open(filepath, "r")
