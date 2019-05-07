@@ -111,7 +111,7 @@ class SentimentNeuron(nn.Module):
                 return None;
 
             split = sequence.split(" ")
-            split = list(filter(('').__ne__, split))
+            # split = list(filter(('').__ne__, split))
 
             trans_seq, _ = self.transform_sequence(seq_dataset, split)
             guess = self.sent_classfier.predict([trans_seq])[0]
