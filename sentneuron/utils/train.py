@@ -68,25 +68,6 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
 
         print('%05.3f Test accuracy' % score)
 
-def evolve_weights(neuron, seq_data, results_path):
-    n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
-    sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
-    print(sentneuron_ixs)
-
-    # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
-    plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
-
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
-    best_ind, best_fit = genAlg.evolve()
-
-    override = {}
-    for i in range(len(sentneuron_ixs)):
-        override[int(sentneuron_ixs[i])] = best_ind[i]
-
-    print(override)
-    with open('../output/ga_best.json', 'w') as fp:
-        json.dump(override, fp)
-
 def train_unsupervised_classification_model(neuron, seq_data, sent_data):
     test_ix = 0
 
@@ -139,3 +120,23 @@ def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
         np.save(xs_filename, xs)
 
     return xs
+
+
+def evolve_weights(neuron, seq_data, results_path):
+    n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
+    sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
+    print(sentneuron_ixs)
+
+    # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
+    plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
+
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
+    best_ind, best_fit = genAlg.evolve()
+
+    override = {}
+    for i in range(len(sentneuron_ixs)):
+        override[int(sentneuron_ixs[i])] = best_ind[i]
+
+    print(override)
+    with open('../output/ga_best.json', 'w') as fp:
+        json.dump(override, fp)

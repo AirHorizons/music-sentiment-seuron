@@ -107,7 +107,7 @@ class SentimentMidi:
 
         return sentiment_data
 
-    def balance_dataset(self):
+    def balance_dataset(self, upsample=False):
         ids = np.array([dp[0] for dp in self.data])
         xs  = np.array([dp[1] for dp in self.data])
         ys  = np.array([dp[2] for dp in self.data])
@@ -125,6 +125,13 @@ class SentimentMidi:
 
         maxClassData = [(ids[i], xs[i], ys[i]) for i in maxClassIxs]
         minClassData = [(ids[i], xs[i], ys[i]) for i in minClassIxs]
+
+        if upsample:
+            # Downsample majority class
+            minClassData_upsampled = resample(minClassData, replace=True, n_samples=len(maxClassData), random_state=42)
+
+            # Combine minority class with downsampled majority class
+            return minClassData_upsampled + maxClassData
 
         # Downsample majority class
         maxClassData_downsampled = resample(maxClassData, replace=False, n_samples=len(minClassData), random_state=42)
