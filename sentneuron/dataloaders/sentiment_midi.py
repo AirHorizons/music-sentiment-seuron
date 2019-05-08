@@ -16,8 +16,6 @@ class SentimentMidi:
         if balance:
             self.data = self.balance_dataset(upsample=False)
 
-        print(self.data)
-
         ys = np.array([dp[3] for dp in self.data])
         posLabels = len(np.where(ys == 1.)[0])
         negLabels = len(np.where(ys == 0.)[0])
