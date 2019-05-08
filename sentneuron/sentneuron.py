@@ -105,18 +105,18 @@ class SentimentNeuron(nn.Module):
         score = self.sent_classfier.score(teX, teY) * 100.
         return score
 
-    def predict_sentiment(self, seq_dataset, sequence):
+    def predict_sentiment(self, seq_dataset, xs, transformed=False):
         with torch.no_grad():
             if self.sent_classfier == None:
                 return None;
 
-            split = sequence.split(" ")
-            # split = list(filter(('').__ne__, split))
+            sequences = []
+            for x in xs:
+                if not transformed:
+                    x, _ = self.transform_sequence(seq_dataset, x.split(" "))
+                sequences.append(x)
 
-            trans_seq, _ = self.transform_sequence(seq_dataset, split)
-            guess = self.sent_classfier.predict([trans_seq])[0]
-
-            return guess
+            return self.sent_classfier.predict(sequences)
 
     def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
         with torch.no_grad():
@@ -274,7 +274,10 @@ class SentimentNeuron(nn.Module):
                 # Append the index to the sequence
                 seq.append(x)
 
-            return seq_dataset.decode(seq)
+            final_hidden, final_cell = hidden_cell
+            trans_sequence = np.squeeze(cell.data.cpu().numpy())
+
+            return seq_dataset.decode(seq), trans_sequence
 
     def transform_sequence(self, seq_dataset, sequence, track_indices=[]):
         with torch.no_grad():

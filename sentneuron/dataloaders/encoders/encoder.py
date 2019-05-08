@@ -19,9 +19,6 @@ class Encoder(ABC):
             else:
                 # Load vocabulary
                 self.vocab = datapath.split(" ")
-                for i in range(len(self.vocab)):
-                    if self.vocab[i] == "":
-                        self.vocab[i] = " "
 
             self.vocab = list(set(self.vocab))
             self.vocab.sort()

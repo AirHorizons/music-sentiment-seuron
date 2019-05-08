@@ -8,6 +8,8 @@ import sentneuron as sn
 from .plot import *
 from .ga   import GeneticAlgorithm
 
+from sklearn.metrics import confusion_matrix
+
 def create_data_with_type(seq_data_path, data_type, pre_loaded):
     seq_data = None
 
@@ -76,8 +78,8 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
     data_split = list(sent_data.split)
     for train, test in data_split:
         print("-> Test", test_ix)
-        trX, trY = sent_data.unpack_fold(train)
-        teX, teY = sent_data.unpack_fold(test)
+        trX, trY, trNam = sent_data.unpack_fold(train)
+        teX, teY, teNam = sent_data.unpack_fold(test)
 
         sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
 
@@ -86,6 +88,9 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
 
         print("Transforming Test Sequences.")
         teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(test_ix) + '.npy'))
+
+        print(trNam)
+        print(trY)
 
         posLabelsTr = len(np.where(np.array(trY) == 1)[0])
         negLabelsTr = len(np.where(np.array(trY) == 0)[0])
@@ -99,6 +104,11 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
         print("Trainning sentiment classifier with transformed sequences.")
         acc = neuron.fit_sentiment(trXt, trY, teXt, teY)
 
+        y_true = teY
+        y_pred = neuron.predict_sentiment(seq_data, teXt, transformed=True)
+        print("Confusion Matrix")
+        print(confusion_matrix(y_true, y_pred))
+
         print('Test accuracy', acc)
         accuracy.append(acc)
         test_ix += 1
@@ -107,8 +117,8 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
     print("---> Best Test:", best_test_ix)
 
     train, test = data_split[best_test_ix]
-    trX, trY = sent_data.unpack_fold(train)
-    teX, teY = sent_data.unpack_fold(test)
+    trX, trY, trNam = sent_data.unpack_fold(train)
+    teX, teY, teNam = sent_data.unpack_fold(test)
 
     sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
 
