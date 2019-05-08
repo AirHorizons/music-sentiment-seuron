@@ -87,6 +87,14 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
         print("Transforming Test Sequences.")
         teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(test_ix) + '.npy'))
 
+        posLabelsTr = len(np.where(np.array(trY) == 1)[0])
+        negLabelsTr = len(np.where(np.array(trY) == 0)[0])
+        posLabelsTe = len(np.where(np.array(teY) == 1)[0])
+        negLabelsTe = len(np.where(np.array(teY) == 0)[0])
+
+        print("Total positive examples training/test:", posLabelsTr, posLabelsTe)
+        print("Total negative examples training/test:", negLabelsTr, negLabelsTe)
+
         # Running sentiment analysis
         print("Trainning sentiment classifier with transformed sequences.")
         acc = neuron.fit_sentiment(trXt, trY, teXt, teY)

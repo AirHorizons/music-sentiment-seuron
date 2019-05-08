@@ -14,7 +14,7 @@ class SentimentMidi:
 
         self.data = self.load(data_path, x_col_name, y_col_name, id_col_name, pad)
         if balance:
-            self.data = self.balance_dataset(upsample=True)
+            self.data = self.balance_dataset(upsample=False)
 
         ys = np.array([dp[2] for dp in self.data])
         posLabels = len(np.where(ys == 1.)[0])
