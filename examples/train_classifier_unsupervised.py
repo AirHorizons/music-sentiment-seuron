@@ -30,11 +30,16 @@ logreg_model = sn.utils.train_unsupervised_classification_model(neuron, seq_data
 # sn.utils.evolve_weights(neuron, seq_data, opt.results_path)
 
 dataset_name = opt.model_path.split("/")[-1]
+
+gen_pieces = []
 for i in range(30):
     ini_seq = seq_data.str2symbols(".")
-    gen_seq, final_cell = neuron.generate_sequence(seq_data, ini_seq, 128, 0.9)
-    guess = neuron.predict_sentiment(seq_data, [final_cell], transformed=True)[0]
-    print("Gen piece", i, "sentiment: ", guess)
+    gen_seq, final_cell = neuron.generate_sequence(seq_data, ini_seq, 128, 1.0)
+    gen_pieces.append(final_cell)
 
     # Writing sampled sequence
     seq_data.write(gen_seq, "../output/" + dataset_name + "_" + str(i))
+
+guesses = neuron.predict_sentiment(seq_data, gen_pieces, transformed=True)
+for i in range(len(guesses)):
+    print("Gen piece", i, "sentiment: ", guesses[i])

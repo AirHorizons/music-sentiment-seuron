@@ -84,6 +84,7 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
         sent_data_dir = "/".join(sent_data.data_path.split("/")[:-1])
 
         print("Transforming Trainning Sequences.")
+        # print(trNam)
         trXt = tranform_sentiment_data(neuron, seq_data, trX, os.path.join(sent_data_dir, 'trX_' + str(test_ix) + '.npy'))
 
         print("Transforming Test Sequences.")
@@ -123,6 +124,11 @@ def train_unsupervised_classification_model(neuron, seq_data, sent_data):
     teXt = tranform_sentiment_data(neuron, seq_data, teX, os.path.join(sent_data_dir, 'teX_' + str(best_test_ix) + '.npy'))
     acc = neuron.fit_sentiment(trXt, trY, teXt, teY)
     print("---> Best Test accuracy:", acc)
+
+    y_pred = neuron.predict_sentiment(seq_data, teXt, transformed=True)
+
+    for i in range(len(y_pred)):
+        print(teNam[i], teY[i], y_pred[i])
 
     return acc
 

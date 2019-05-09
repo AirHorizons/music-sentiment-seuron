@@ -40,7 +40,7 @@ class SentimentMidi:
             id = row[id_col_name]
             name = row[path_col_name]
 
-            x = row[x_col_name]
+            x = self.preprocess(row[x_col_name])
             if pad:
                 max_len = self.find_longest_sequence_len(filepath, x_col_name)
                 x = self.pad_sequence(x, max_len)
@@ -148,3 +148,10 @@ class SentimentMidi:
         random.Random(42).shuffle(balanced_data)
 
         return balanced_data
+
+    def preprocess(self, text, front_pad='\n ', end_pad=''):
+        text = html.unescape(text)
+        text = text.replace('\n', '.').strip()
+        text = front_pad+text+end_pad
+        # text = text.encode()
+        return text
