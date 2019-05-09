@@ -9,7 +9,9 @@ class Encoder(ABC):
         if datapath == None:
             self.data  = []
             self.vocab = []
+
             self.encoding_size = 0
+
             self.symbol_to_ix = {}
             self.ix_to_symbol = {}
         else:

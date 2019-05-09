@@ -22,7 +22,8 @@ class EncoderText(Encoder):
                 txt_name = textpath.split("/")[-1]
 
                 vocab = vocab | set(txt_content)
-                encoded_text.append((txt, txt_name))
+                encoded_text.append((textpath, txt_name))
+                txt.close()
 
         return encoded_text, vocab
 
@@ -36,8 +37,10 @@ class EncoderText(Encoder):
         return ''.join(self.ix_to_symbol[ix] for ix in ixs)
 
     def read(self, file):
-        file.seek(0);
-        return file.read()
+        fp = open(file, "r")
+        content = fp.read()
+        fp.close()
+        return content
 
     def write(self, text, path):
         f = open(path + ".txt", "w")

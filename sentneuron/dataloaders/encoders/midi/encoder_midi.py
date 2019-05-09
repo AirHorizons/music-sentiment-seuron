@@ -47,10 +47,10 @@ class EncoderMidi(Encoder):
 
                     if len(midi_content) > 0:
                         midi_fp = open(midi_txt_name, "w+")
-                        midi_fp.write(midi_content);
-                        midi_fp.flush();
+                        midi_fp.write(midi_content)
+                        midi_fp.flush()
 
-                midi_fp.close();
+                midi_fp.close()
 
                 if len(midi_content) > 0:
                     encoded_midi.append((midi_txt_name, midi_name + ".mid"))
