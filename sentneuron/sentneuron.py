@@ -286,7 +286,6 @@ class SentimentNeuron(nn.Module):
             # Create a new hidden state
             hidden_cell = self.init_hidden()
 
-            print(sequence)
             xs = seq_dataset.encode_sequence(sequence)
             batch = self.__batchify_sequence(torch.tensor(xs, dtype=torch.long, device=self.device))
 

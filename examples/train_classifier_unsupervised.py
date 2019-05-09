@@ -33,7 +33,7 @@ dataset_name = opt.model_path.split("/")[-1]
 
 gen_pieces = []
 for i in range(30):
-    ini_seq = seq_data.str2symbols(".")
+    ini_seq = seq_data.str2symbols("\n . ")
     gen_seq, final_cell = neuron.generate_sequence(seq_data, ini_seq, 128, 1.0)
     gen_pieces.append(final_cell)
 
