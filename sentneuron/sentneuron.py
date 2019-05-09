@@ -13,7 +13,14 @@ from sklearn.linear_model import LogisticRegression
 class SentimentNeuron(nn.Module):
     def __init__(self, input_size, embed_size, hidden_size, output_size, n_layers=1, dropout=0):
         super(SentimentNeuron, self).__init__()
-        self.sent_classfier = None
+        # Save current training state to  resume it later if needed
+        self.training_state = {
+            "epoch": 0,
+            "shard": 0,
+            "batch": 0,
+            "loss":  0,
+            "optim": {}
+         }
 
         # Set running device to "cpu" or "cuda" (if available)
         self.device = torch.device("cpu")
@@ -48,6 +55,9 @@ class SentimentNeuron(nn.Module):
 
         # Hidden to output layers
         self.h2y = nn.Linear(hidden_size, output_size)
+
+        # Linear regression model that classifies sentiment
+        self.sent_classfier = None
 
         # Set this model to run in the given device
         self.to(device=self.device)
@@ -147,32 +157,44 @@ class SentimentNeuron(nn.Module):
 
             return loss_avg/n_batches
 
-    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32):
+    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32, checkpoint=None):
         try:
-            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size)
+            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size, checkpoint)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
-    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size):
+    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size, checkpoint):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
         # Loss at epoch 0
-        smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
+        if checkpoint == None:
+            epoch_lr    = lr
+            epoch_in    = 0
+            shard_in    = 0
+            batch_in    = 0
+            smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
+        else:
+            epoch_in = checkpoint["epoch"]
+            shard_in = checkpoint["shard"]
+            batch_in = checkpoint["batch"]
+            smooth_loss = checkpoint["loss"]
+            epoch_lr = lr
+            for epoch in range(epoch_in):
+                epoch_lr *= lr_decay
 
-        # Start optimizer with initial learning rate every epoch
-        epoch_lr = lr
+        for epoch in range(epoch_in, epochs):
+            # Start optimizer with initial learning rate every epoch
+            optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
+            if checkpoint != None and epoch_in == epoch:
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-        for epoch in range(epochs):
             # Iterate on each shard of the dataset
-            for shard in seq_dataset.data:
+            for shard in range(shard_in, len(seq_dataset.data)):
                 h_init = self.init_hidden(batch_size)
 
-                # Start optimizer with initial learning rate every epoch
-                optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
-
                 # Use file pointer to read file content
-                filepath, filename = shard
+                filepath, filename = seq_dataset.data[shard]
                 shard_content = seq_dataset.read(filepath)
 
                 # Batchify file content
@@ -182,7 +204,7 @@ class SentimentNeuron(nn.Module):
                 n_batches = sequence.size(0)//seq_length
 
                 # Each epoch consists of one entire pass over the dataset
-                for batch_ix in range(n_batches - 1):
+                for batch_ix in range(batch_in, n_batches - 1):
                     # Reset optimizer grad
                     optimizer.zero_grad()
 
@@ -207,19 +229,26 @@ class SentimentNeuron(nn.Module):
 
                     # Run Stochastic Gradient Descent and Update weights
                     optimizer.step()
+                    self.training_state["optim"] = optimizer.state_dict()
 
                     # Calculate average loss and log the results of this batch
                     smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
                     if batch_ix % 10 == 0:
                         self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, shard_content)
 
+                    self.training_state["loss"] = smooth_loss
+                    self.training_state["batch"] = batch_ix
+
+                self.training_state["shard"] = shard
+
             # Apply learning rate decay before the next epoch
             epoch_lr *= lr_decay
+            self.training_state["epoch"] = epoch
 
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
-            sample_dat = self.generate_sequence(seq_dataset, data[i_init:i_end], sample_len=200)
+            sample_dat, _ = self.generate_sequence(seq_dataset, data[i_init:i_end], sample_len=200)
 
             print('epoch:', epoch)
             print('filename:', filename)
@@ -306,20 +335,33 @@ class SentimentNeuron(nn.Module):
     def load(self, model_filename):
         print("Loading model:", model_filename)
 
-        model = torch.load(model_filename, map_location=self.device)
-        self.load_state_dict(model)
+        checkpoint = torch.load(model_filename, map_location=self.device)
+        self.load_state_dict(checkpoint['model_state_dict'])
         self.eval()
+
+        return checkpoint['optimizer_state_dict']
 
     def save(self, seq_dataset, path=""):
         # Persist model on disk with current timestamp
         model_filename = path + "_model.pth"
-        torch.save(self.state_dict(), model_filename)
+
+        torch.save({
+            'model_state_dict': self.state_dict(),
+            'optimizer_state_dict': self.training_state["optim"],
+        }, model_filename)
+
+        self.training_state.pop("optim", None)
+
+        train_filename = path + "_train.json"
+        with open(train_filename, 'w') as fp:
+            json.dump(self.training_state, fp)
 
         # Persist encoding vocab on disk
         meta_data = {}
         meta_filename = path + "_meta.json"
         with open(meta_filename, 'w') as fp:
-            meta_data["vocab"] = " ".join([symb for symb in seq_dataset.vocab])
+            meta_data["data"] = seq_dataset.data
+            meta_data["vocab"] = seq_dataset.vocab
             meta_data["data_type"]   = seq_dataset.type()
             meta_data["input_size"]  = self.input_size
             meta_data["embed_size"]  = self.embed_size

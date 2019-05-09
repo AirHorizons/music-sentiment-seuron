@@ -5,31 +5,27 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 class Encoder(ABC):
-    def __init__(self, datapath=None, pre_loaded=False):
-        if datapath == None:
-            self.data  = []
-            self.vocab = []
-
-            self.encoding_size = 0
-
-            self.symbol_to_ix = {}
-            self.ix_to_symbol = {}
+    def __init__(self, datapath=None, vocab=None, data=None):
+        if datapath != None:
+            self.data, self.vocab = self.load(datapath)
         else:
-            if not pre_loaded:
-                # Load data and vocabulary from files
-                self.data, self.vocab = self.load(datapath)
-            else:
+            if vocab != None and data != None:
                 # Load vocabulary
-                self.vocab = datapath.split(" ")
+                self.data = data
+                self.vocab = vocab
+                print(self.vocab)
+            else:
+                self.data  = []
+                self.vocab = []
 
-            self.vocab = list(set(self.vocab))
-            self.vocab.sort()
+        self.vocab = list(set(self.vocab))
+        self.vocab.sort()
 
-            self.encoding_size = len(self.vocab)
+        self.encoding_size = len(self.vocab)
 
-            # Create dictionaries to support symbol to index conversion and vice-versa
-            self.symbol_to_ix = { symb:i for i,symb in enumerate(self.vocab) }
-            self.ix_to_symbol = { i:symb for i,symb in enumerate(self.vocab) }
+        # Create dictionaries to support symbol to index conversion and vice-versa
+        self.symbol_to_ix = { symb:i for i,symb in enumerate(self.vocab) }
+        self.ix_to_symbol = { i:symb for i,symb in enumerate(self.vocab) }
 
     @abstractmethod
     def type(self):

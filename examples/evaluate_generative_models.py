@@ -18,6 +18,6 @@ for file in os.listdir(opt.models_path):
 
         if os.path.isfile(metafile):
             model_path = metafile.split("_meta.json")[0]
-            neuron, seq_data = sn.utils.load_generative_model(model_path)
+            neuron, seq_data, _ = sn.utils.load_generative_model(model_path)
             loss = neuron.evaluate(seq_data, opt.batch_size, opt.seq_length, opt.test_shard)
             print(model_path, loss)
