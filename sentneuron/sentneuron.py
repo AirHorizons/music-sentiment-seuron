@@ -180,7 +180,7 @@ class SentimentNeuron(nn.Module):
             batch_in = checkpoint["batch"]
             smooth_loss = checkpoint["loss"]
             epoch_lr = lr
-            for epoch in range(epoch_in):
+            for shard in range(shard_in):
                 epoch_lr *= lr_decay
 
         for epoch in range(epoch_in, epochs):
@@ -239,10 +239,10 @@ class SentimentNeuron(nn.Module):
                     self.training_state["loss"] = smooth_loss
                     self.training_state["batch"] = batch_ix
 
+                # Apply learning rate decay before the next shard
+                epoch_lr *= lr_decay
                 self.training_state["shard"] = shard
 
-            # Apply learning rate decay before the next epoch
-            epoch_lr *= lr_decay
             self.training_state["epoch"] = epoch
 
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
