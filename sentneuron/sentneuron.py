@@ -188,7 +188,7 @@ class SentimentNeuron(nn.Module):
             for shard in range(shard_in, len(seq_dataset.data)):
                 # Start optimizer with current learning rate
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
-                if checkpoint != None and epoch_in == epoch:
+                if checkpoint != None and shard_in == shard:
                     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
                 h_init = self.init_hidden(batch_size)
