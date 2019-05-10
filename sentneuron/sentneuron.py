@@ -184,13 +184,13 @@ class SentimentNeuron(nn.Module):
                 epoch_lr *= lr_decay
 
         for epoch in range(epoch_in, epochs):
-            # Start optimizer with initial learning rate every epoch
-            optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
-            if checkpoint != None and epoch_in == epoch:
-                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
             # Iterate on each shard of the dataset
             for shard in range(shard_in, len(seq_dataset.data)):
+                # Start optimizer with current learning rate
+                optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
+                if checkpoint != None and epoch_in == epoch:
+                    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
                 h_init = self.init_hidden(batch_size)
 
                 # Use file pointer to read file content

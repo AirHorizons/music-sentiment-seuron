@@ -13,7 +13,6 @@ class Encoder(ABC):
                 # Load vocabulary
                 self.data = data
                 self.vocab = vocab
-                print(self.vocab)
             else:
                 self.data  = []
                 self.vocab = []
