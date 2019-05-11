@@ -184,8 +184,12 @@ class SentimentNeuron(nn.Module):
                 epoch_lr *= lr_decay
 
         for epoch in range(epoch_in, epochs):
+            self.training_state["epoch"] = epoch
+
             # Iterate on each shard of the dataset
             for shard in range(shard_in, len(seq_dataset.data)):
+                self.training_state["shard"] = shard
+
                 # Start optimizer with current learning rate
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
                 if checkpoint != None and shard_in == shard:
@@ -205,6 +209,8 @@ class SentimentNeuron(nn.Module):
 
                 # Each epoch consists of one entire pass over the dataset
                 for batch_ix in range(batch_in, n_batches - 1):
+                    self.training_state["batch"] = batch_ix
+
                     # Reset optimizer grad
                     optimizer.zero_grad()
 
@@ -233,17 +239,15 @@ class SentimentNeuron(nn.Module):
 
                     # Calculate average loss and log the results of this batch
                     smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                    if batch_ix % 10 == 0:
-                        self.__fit_sequence_log(epoch, (batch_ix, n_batches), smooth_loss, filename, seq_dataset, shard_content)
+                    self.__fit_sequence_log(epoch, (batch_ix, n_batches - 1), smooth_loss, filename, seq_dataset, shard_content)
 
                     self.training_state["loss"] = smooth_loss
-                    self.training_state["batch"] = batch_ix
 
                 # Apply learning rate decay before the next shard
+                batch_in = 0
                 epoch_lr *= lr_decay
-                self.training_state["shard"] = shard
 
-            self.training_state["epoch"] = epoch
+            shard_in = 0
 
     def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
