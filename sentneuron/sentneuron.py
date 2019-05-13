@@ -180,8 +180,8 @@ class SentimentNeuron(nn.Module):
             batch_in = checkpoint["batch"]
             smooth_loss = checkpoint["loss"]
             epoch_lr = lr
-            for shard in range(shard_in):
-                epoch_lr -= epoch_lr/(len(seq_dataset.data) * epochs)
+            for i in range(epoch_in * (shard_in+1)):
+                epoch_lr -= lr/(len(seq_dataset.data) * epochs)
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -239,7 +239,7 @@ class SentimentNeuron(nn.Module):
 
                     # Calculate average loss and log the results of this batch
                     smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                    self.__fit_sequence_log(epoch, (batch_ix, n_batches - 1), smooth_loss, filename, seq_dataset, shard_content)
+                    self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), smooth_loss, filename, seq_dataset, shard_content)
 
                     self.training_state["loss"] = smooth_loss
 
@@ -247,16 +247,17 @@ class SentimentNeuron(nn.Module):
                 batch_in = 0
 
                 # Decay learning rate lenearly
-                epoch_lr -= epoch_lr/(len(seq_dataset.data) * epochs)
+                epoch_lr -= lr/(len(seq_dataset.data) * epochs)
 
             shard_in = 0
 
-    def __fit_sequence_log(self, epoch, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
+    def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
             sample_dat, _ = self.generate_sequence(seq_dataset, data[i_init:i_end], sample_len=200)
 
             print('epoch:', epoch)
+            print('lr:', epoch_lr)
             print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
             print('loss = ', loss)
