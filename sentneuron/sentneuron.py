@@ -157,13 +157,13 @@ class SentimentNeuron(nn.Module):
 
             return loss_avg/n_batches
 
-    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, lr_decay=1, grad_clip=5, batch_size=32, checkpoint=None):
+    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
         try:
-            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size, checkpoint)
+            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
-    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, lr_decay, grad_clip, batch_size, checkpoint):
+    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
@@ -181,7 +181,7 @@ class SentimentNeuron(nn.Module):
             smooth_loss = checkpoint["loss"]
             epoch_lr = lr
             for shard in range(shard_in):
-                epoch_lr *= lr_decay
+                epoch_lr -= epoch_lr/(len(seq_dataset.data) * epochs)
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -245,7 +245,9 @@ class SentimentNeuron(nn.Module):
 
                 # Apply learning rate decay before the next shard
                 batch_in = 0
-                epoch_lr *= lr_decay
+
+                # Decay learning rate lenearly
+                epoch_lr -= epoch_lr/(len(seq_dataset.data) * epochs)
 
             shard_in = 0
 
