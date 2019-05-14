@@ -179,8 +179,14 @@ class SentimentNeuron(nn.Module):
             shard_in = checkpoint["shard"]
             batch_in = checkpoint["batch"]
             smooth_loss = checkpoint["loss"]
+
+            # Calculate current learning rate
             epoch_lr = lr
-            for i in range(epoch_in * (shard_in+1)):
+            for i in range(epoch_in):
+                for i in range(len(seq_dataset.data)):
+                    epoch_lr -= lr/(len(seq_dataset.data) * epochs)
+
+            for i in range(shard_in):
                 epoch_lr -= lr/(len(seq_dataset.data) * epochs)
 
         for epoch in range(epoch_in, epochs):

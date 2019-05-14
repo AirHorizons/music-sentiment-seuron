@@ -129,21 +129,6 @@ class EncoderMidi(Encoder):
 
         return time_events
 
-    def midi_parse_events(self, midi):
-        events = []
-
-        track_lens = [len(track.events) for track in midi.tracks]
-        n_events = max(track_lens)
-
-        for i in range(n_events):
-            for track in midi.tracks:
-                if i < len(track.events):
-                    ev = track.events[i]
-                    if ev.isNoteOn() or ev.isNoteOn() or ev.isDeltaTime():
-                        events.append(ev)
-
-        return events
-
     def midi2notes(self, midi_stream, sample_freq, modulate_range):
         notes = []
         notes += self.midi_parse_notes(midi_stream, sample_freq)
