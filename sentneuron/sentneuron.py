@@ -201,6 +201,7 @@ class SentimentNeuron(nn.Module):
                 if checkpoint != None and shard_in == shard:
                     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
+                # Initialize states to zero at the beginning of each shard
                 h_init = self.init_hidden(batch_size)
 
                 # Use file pointer to read file content
@@ -233,7 +234,8 @@ class SentimentNeuron(nn.Module):
                         loss += loss_function(y, batch[t+1])
                     loss.backward()
 
-                    # Copy current hidden state to be next h_init
+                    # Persist state across updates to simulate full-backpropagation and
+                    # allow for the forward propagation of information outside of a given sub- sequence.
                     h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
 
                     # Clip gradients

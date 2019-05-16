@@ -26,7 +26,7 @@ if opt.override != "":
 
 dataset_name = opt.model_path.split("/")[-1]
 for i in range(opt.n):
-    sample = neuron.generate_sequence(seq_data, init, opt.seq_length, opt.temp, override=override)
+    sample, _ = neuron.generate_sequence(seq_data, init, opt.seq_length, opt.temp, override=override)
 
     # Writing sampled sequence
     seq_data.write(sample, "../output/" + dataset_name + "_" + str(i))

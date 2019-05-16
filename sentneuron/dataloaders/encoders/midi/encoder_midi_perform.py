@@ -7,14 +7,14 @@ import music21 as m21
 from .encoder_midi import EncoderMidi
 
 class EncoderMidiPerform(EncoderMidi):
-    def midi2encoding(self, midi, sample_freq, piano_range, modulate_range, stretching_range):
+    def midi2encoding(self, midi, sample_freq, piano_range, modulate_range, stretching_range, invert, retrograde):
         try:
             midi_stream = m21.midi.translate.midiFileToStream(midi)
         except:
             return []
 
         # Get piano roll from midi stream
-        performances = self.midi2piano_roll_with_performance(midi_stream, sample_freq=4, piano_range=128, modulate_range=1, stretching_range=1)
+        performances = self.midi2piano_roll_with_performance(midi_stream, sample_freq, piano_range, modulate_range, stretching_range, invert, retrograde)
 
         return " ".join(self.performances2encoding(performances))
 
@@ -23,7 +23,7 @@ class EncoderMidiPerform(EncoderMidi):
         lastVelocity = -1
         lastDuration = -1.0
 
-        final_encoding = []
+        final_encoding = {}
 
         perform_i = 0
         for piano_roll in performances:
@@ -51,14 +51,18 @@ class EncoderMidiPerform(EncoderMidi):
                 if tempo_change != 0:
                     perform_encoding.append("t_" + str(int(tempo_change)))
 
-                perform_encoding.append(".")
+                perform_encoding.append(",")
+            perform_encoding.append(".")
+            perform_encoding.append("\n")
 
-            final_encoding += perform_encoding
-            final_encoding.append("\n")
+            # Check if this version of the MIDI is already added
+            perform_encoding_str = " ".join(perform_encoding)
+            if perform_encoding_str not in final_encoding:
+                final_encoding[perform_encoding_str] = perform_i
 
             perform_i += 1
 
-        return final_encoding
+        return final_encoding.keys()
 
     def encoding2midi(self, note_encoding, ts_duration=0.25):
         notes = []
@@ -71,8 +75,8 @@ class EncoderMidiPerform(EncoderMidi):
         for note in note_encoding.split(" "):
             if len(note) == 0:
                 continue
-                
-            if note == ".":
+
+            if note == ",":
                 ts += 1
 
             elif note[0] == "n":

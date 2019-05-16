@@ -12,8 +12,14 @@ from ..encoder import Encoder
 THREE_DOTTED_BREVE = 15
 THREE_DOTTED_32ND  = 0.21875
 
+MIN_VELOCITY = 0
+MAX_VELOCITY = 128
+
+MIN_TEMPO = 24
+MAX_TEMPO = 176
+
 class EncoderMidi(Encoder):
-    def load(self, datapath, sample_freq=4, piano_range=128, modulate_range=1, stretching_range=1):
+    def load(self, datapath, sample_freq=4, piano_range=128, modulate_range=12, stretching_range=10, invert=False, retrograde=False):
         encoded_midi = []
 
         vocab = set()
@@ -43,7 +49,7 @@ class EncoderMidi(Encoder):
                     midi.close()
 
                     # Translate midi to stream of notes and chords
-                    midi_content = self.midi2encoding(midi, sample_freq, piano_range, modulate_range, stretching_range)
+                    midi_content = self.midi2encoding(midi, sample_freq, piano_range, modulate_range, stretching_range, invert, retrograde)
 
                     if len(midi_content) > 0:
                         midi_fp = open(midi_txt_name, "w+")
@@ -59,7 +65,7 @@ class EncoderMidi(Encoder):
         return encoded_midi, vocab
 
     @abstractmethod
-    def midi2encoding(self, midi, sample_freq, piano_range, modulate_range, stretching_range):
+    def midi2encoding(self, midi, sample_freq, piano_range, modulate_range, stretching_range, invert, retrograde):
         pass
 
     @abstractmethod
@@ -129,39 +135,52 @@ class EncoderMidi(Encoder):
 
         return time_events
 
-    def midi2notes(self, midi_stream, sample_freq, modulate_range):
+    def midi2notes(self, midi_stream, sample_freq, modulate_range, invert):
         notes = []
         notes += self.midi_parse_notes(midi_stream, sample_freq)
         notes += self.midi_parse_chords(midi_stream, sample_freq)
 
-        # Transpose the notes to all the
+        # Transpose the notes to all the keys in modulate_range
         transpositions = self.transpose_notes(notes, modulate_range)
-        return transpositions
 
-    def midi2piano_roll(self, midi_stream, sample_freq, piano_range, modulate_range):
+        # Invert notes
+        inversions = []
+        if invert:
+            inversions = [self.invert_notes(t) for t in transpositions]
+
+        return transpositions + inversions
+
+    def midi2piano_roll(self, midi_stream, sample_freq, piano_range, modulate_range, invert=False, retrograde=False):
         # Calculate the amount of time steps in the piano roll
         time_steps = ma.floor(midi_stream.duration.quarterLength * sample_freq) + 1
 
         # Parse the midi file into a list of notes (pitch, duration, velocity, offset)
-        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_rang)
+        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_rang, invert)
         return self.notes2piano_roll(transpositions, time_steps, piano_range)
 
-    def midi2piano_roll_with_performance(self, midi_stream, sample_freq, piano_range, modulate_range, stretching_range):
+    def midi2piano_roll_with_performance(self, midi_stream, sample_freq, piano_range, modulate_range, stretching_range, invert=False, retrograde=False):
         # Calculate the amount of time steps in the piano roll
         time_steps = ma.floor(midi_stream.duration.quarterLength * sample_freq) + 1
 
         # Parse the midi file into a list of notes (pitch, duration, velocity, offset)
-        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_range)
+        transpositions = self.midi2notes(midi_stream, sample_freq, modulate_range, invert)
 
         time_events = self.midi_parse_metronome(midi_stream, sample_freq)
         time_streches = self.strech_time(time_events, stretching_range)
 
-        return self.notes2piano_roll_performances(transpositions, time_streches, time_steps, piano_range)
+        performances = self.notes2piano_roll_performances(transpositions, time_streches, time_steps, piano_range)
+
+        retrograde_performances = []
+        if retrograde:
+            for perm in performances:
+                retrograde_perm = np.flip(perm, 0)
+                retrograde_performances.append(retrograde_perm)
+
+        return performances + retrograde_performances
 
     def notes2piano_roll(self, transpositions, time_steps, piano_range):
         scores = []
         for t_ix in range(len(transpositions)):
-
             piano_roll = np.zeros((time_steps, piano_range))
             for note in transpositions[t_ix]:
                 pitch, duration, velocity, offset = n
@@ -198,11 +217,11 @@ class EncoderMidi(Encoder):
 
                     # offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
                     piano_roll[offset, pitch][0] = self.__clamp_duration(duration)
-                    piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(0, 128))
+                    piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(MIN_VELOCITY, MAX_VELOCITY))
 
                 for time_event in time_streches[s_ix]:
                     time, offset = time_event
-                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(0, 176))
+                    piano_roll[offset, -1][0] = self.discretize_value(time, bins=100, range=(MIN_TEMPO, MAX_TEMPO))
 
                 performances.append(piano_roll)
 
@@ -242,6 +261,15 @@ class EncoderMidi(Encoder):
             streches.append(time_events_in_strech)
 
         return streches
+
+    def invert_notes(self, notes, max_pitch = 127):
+        inverted_notes = []
+
+        for note in notes:
+            pitch, duration, velocity, offset = note
+            inverted_notes.append((max_pitch - pitch, duration, velocity, offset))
+
+        return inverted_notes
 
     def discretize_value(self, val, bins, range):
         min_val, max_val = range
