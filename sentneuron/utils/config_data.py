@@ -36,18 +36,16 @@ def split_data(pieces, train_percent = 0.9):
         random.Random(42).shuffle(pieces[i])
         for version in pieces[i]:
             train.append(version)
-        print("train piece", i)
 
     for j in range(i + 1, len(pieces)):
         random.Random(42).shuffle(pieces[j])
         for version in pieces[j]:
             test.append(version)
-        print("test piece", j)
 
     return train, test
 
 def generate_shards(pieces, shards_amount=1, shard_prefix=""):
-    pieces_per_shard = int(len(pieces)/shards_amount) + 1
+    pieces_per_shard = int(len(pieces)/shards_amount)
 
     for i in range(shards_amount):
         if not os.path.exists("shards"):
@@ -63,9 +61,6 @@ def generate_shards(pieces, shards_amount=1, shard_prefix=""):
 pieces_path = sys.argv[1]
 pieces = load_pieces(pieces_path)
 train,test = split_data(pieces)
-
-print("train", len(train))
-print("test", len(test))
 
 generate_shards(train, shards_amount=10, shard_prefix="train")
 generate_shards(test, shards_amount=1, shard_prefix="test")
