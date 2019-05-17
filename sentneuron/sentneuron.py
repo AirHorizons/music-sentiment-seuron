@@ -198,7 +198,7 @@ class SentimentNeuron(nn.Module):
 
                 # Start optimizer with current learning rate
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
-                if checkpoint != None and shard_in == shard:
+                if checkpoint != None and epoch_in == epoch and shard_in == shard:
                     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
                 # Initialize states to zero at the beginning of each shard
