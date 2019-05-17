@@ -26,7 +26,7 @@ def load_pieces(datapath):
 
     return pieces
 
-def generate_shards(pieces, train_percent = 0.9):
+def split_data(pieces, train_percent = 0.9):
     random.Random(42).shuffle(pieces)
 
     train_size = int(train_percent * len(pieces)) + 1
@@ -38,18 +38,37 @@ def generate_shards(pieces, train_percent = 0.9):
             train.append(version)
         print("train piece", i)
 
-    for j in range(i, len(pieces)):
+    for j in range(i + 1, len(pieces)):
         random.Random(42).shuffle(pieces[j])
         for version in pieces[j]:
             test.append(version)
-
         print("test piece", j)
 
     return train, test
 
+def generate_shards(pieces, shards_amount=1, shard_prefix=""):
+    pieces_per_shard = int(len(pieces)/shards_amount) + 1
+
+    for i in range(shards_amount):
+        if not os.path.exists("shards"):
+            os.mkdir("shards")
+
+        fp = open(os.path.join("shards", shard_prefix + "_shard_" + str(i) + ".txt"), "a")
+
+        for j in range(pieces_per_shard):
+            fp.write(pieces[i*pieces_per_shard + j])
+
+        fp.close()
+
 pieces_path = sys.argv[1]
 pieces = load_pieces(pieces_path)
-train,test = generate_shards(pieces)
+train,test = split_data(pieces)
+
+print("train", len(train))
+print("test", len(test))
+
+generate_shards(train, shards_amount=10, shard_prefix="train")
+generate_shards(test, shards_amount=1, shard_prefix="test")
 
 # for p in pieces:
 #     for version in p:
