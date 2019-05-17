@@ -167,6 +167,9 @@ class SentimentNeuron(nn.Module):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
+        # Decay learning rate lenearly over the course of training
+        lr_decay = lr/(len(seq_dataset.data) * epochs)
+
         # Loss at epoch 0
         if checkpoint == None:
             epoch_lr    = lr
@@ -184,10 +187,10 @@ class SentimentNeuron(nn.Module):
             epoch_lr = lr
             for i in range(epoch_in):
                 for i in range(len(seq_dataset.data)):
-                    epoch_lr -= lr/(len(seq_dataset.data) * epochs)
+                    epoch_lr -= lr_decay
 
             for i in range(shard_in):
-                epoch_lr -= lr/(len(seq_dataset.data) * epochs)
+                epoch_lr -= lr_decay
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -255,7 +258,7 @@ class SentimentNeuron(nn.Module):
                 batch_in = 0
 
                 # Decay learning rate lenearly
-                epoch_lr -= lr/(len(seq_dataset.data) * epochs)
+                epoch_lr -= lr_decay
 
             shard_in = 0
 
