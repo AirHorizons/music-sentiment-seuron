@@ -1,9 +1,11 @@
+import os
 import argparse
 import sentneuron as sn
 
 parser = argparse.ArgumentParser(description='train_generative.py')
 
-parser.add_argument('-data_path'  , type=str,   required=True,  help="Training dataset."       )
+parser.add_argument('-train_data' , type=str,   required=True,  help="Training dataset."       )
+parser.add_argument('-test_data'  , type=str,   required=True,  help="Test dataset."       )
 parser.add_argument('-data_type'  , type=str,   required=True,  help="Type of the training dataset: 'txt', 'midi_note', 'midi_chord' or 'midi_perform'." )
 parser.add_argument('-embed_size' , type=int,   default=64   ,  help="Embedding layer size."   )
 parser.add_argument('-hidden_size', type=int,   default=128  ,  help="Hidden layer size."      )
@@ -19,14 +21,14 @@ opt = parser.parse_args()
 
 # Train a generative model to predict characters in a sequence
 if opt.model_path == "":
-    neuron, seq_data = sn.utils.train_generative_model(opt.data_path, opt.data_type, opt.embed_size, \
-                                                       opt.hidden_size, opt.n_layers, opt.dropout, \
-                                                       opt.epochs, opt.seq_length, opt.lr, \
+    neuron, seq_data = sn.utils.train_generative_model(opt.train_data, opt.test_data, opt.data_type, \
+                                                       opt.embed_size, opt.hidden_size, opt.n_layers, \
+                                                       opt.dropout, opt.epochs, opt.seq_length, opt.lr, \
                                                        opt.grad_clip, opt.batch_size)
 else:
     neuron, seq_data = sn.utils.resume_generative_training(opt.model_path, opt.epochs, opt.seq_length, \
                                                            opt.lr, opt.grad_clip, opt.batch_size)
 
 # Save trainned model for sampleing
-dataset_name = opt.data_path.split("/")[-1]
-neuron.save(seq_data, "../trained_models/" + dataset_name)
+dataset_name = os.path.basename(opt.train_data)
+neuron.save(seq_data, opt.test_data, "../trained_models/" + dataset_name)

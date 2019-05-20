@@ -130,6 +130,8 @@ class SentimentNeuron(nn.Module):
 
     def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
         with torch.no_grad():
+            print("Evaluating model with test data:", test_shard_path)
+
             # Loss function
             loss_function = nn.CrossEntropyLoss()
 
@@ -157,11 +159,14 @@ class SentimentNeuron(nn.Module):
 
             return loss_avg/n_batches
 
-    def fit_sequence(self, seq_dataset, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
+    def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
         try:
             self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
         except KeyboardInterrupt:
             print('Exiting from training early.')
+
+        loss = self.evaluate(seq_dataset, batch_size, seq_length, test_data)
+        return loss
 
     def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
         # Loss function
@@ -359,7 +364,7 @@ class SentimentNeuron(nn.Module):
 
         return checkpoint['optimizer_state_dict']
 
-    def save(self, seq_dataset, path=""):
+    def save(self, seq_dataset, test_data, path=""):
         # Persist model on disk with current timestamp
         model_filename = path + "_model.pth"
 
@@ -378,7 +383,8 @@ class SentimentNeuron(nn.Module):
         meta_data = {}
         meta_filename = path + "_meta.json"
         with open(meta_filename, 'w') as fp:
-            meta_data["data"] = seq_dataset.data
+            meta_data["train_data"] = seq_dataset.data
+            meta_data["test_data"]  = test_data
             meta_data["vocab"] = seq_dataset.vocab
             meta_data["data_type"]   = seq_dataset.type()
             meta_data["input_size"]  = self.input_size
