@@ -160,12 +160,14 @@ class SentimentNeuron(nn.Module):
             return loss_avg/n_batches
 
     def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
+        loss = -1
+
         try:
             self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
+            loss = self.evaluate(seq_dataset, batch_size, seq_length, test_data)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
-        loss = self.evaluate(seq_dataset, batch_size, seq_length, test_data)
         return loss
 
     def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):

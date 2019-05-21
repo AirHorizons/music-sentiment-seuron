@@ -60,8 +60,15 @@ class EncoderMidi(Encoder):
 
                 if len(midi_content) > 0:
                     encoded_midi.append((midi_txt_name, midi_name + ".mid"))
-                    vocab = vocab | set(midi_content.split(" "))
+                    
+                    # Remove empty character if it exists after the split
+                    words = set(midi_content.split(" "))
+                    if "" in words:
+                        words.remove("")
+                    
+                    vocab = vocab | words
 
+        print(vocab)
         return encoded_midi, vocab
 
     @abstractmethod
@@ -80,7 +87,7 @@ class EncoderMidi(Encoder):
         fp = open(filepath, "r")
         content = fp.read()
         content = content.split(" ")
-        # content = list(filter(('').__ne__, content))
+        content = list(filter(('').__ne__, content))
         fp.close()
         return content
 

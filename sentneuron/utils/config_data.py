@@ -60,6 +60,7 @@ def generate_shards(pieces, shards_amount=1, shard_prefix="", data_type="txt"):
 
         for j in range(pieces_per_shard):
             fp.write(pieces[i*pieces_per_shard + j])
+            fp.write("\n ")
 
         fp.close()
 
