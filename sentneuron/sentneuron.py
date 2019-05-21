@@ -174,31 +174,14 @@ class SentimentNeuron(nn.Module):
 
         # Decay learning rate lenearly over the course of training
         max_iter = len(seq_dataset.data) * epochs
-        lr_decay = (max_iter - 1)/max_iter
-
-        print("Learning rate decay:", lr_decay)
+        num_iters = 1
 
         # Loss at epoch 0
         if checkpoint == None:
-            epoch_lr    = lr
-            epoch_in    = 0
-            shard_in    = 0
-            batch_in    = 0
+            epoch_in, shard_in, batch_in, epoch_lr = 0, 0, 0, lr
             smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
         else:
-            epoch_in = checkpoint["epoch"]
-            shard_in = checkpoint["shard"]
-            batch_in = checkpoint["batch"]
-            smooth_loss = checkpoint["loss"]
-
-            # Calculate current learning rate
-            epoch_lr = lr
-            for i in range(epoch_in):
-                for i in range(len(seq_dataset.data)):
-                    epoch_lr *= lr_decay
-
-            for i in range(shard_in):
-                epoch_lr *= lr_decay
+            epoch_in, shard_in, batch_in, smooth_loss, epoch_lr, num_iters = self.load_fit_sequence_checkpoint(seq_dataset, max_iter, lr, checkpoint)
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -266,7 +249,8 @@ class SentimentNeuron(nn.Module):
                 batch_in = 0
 
                 # Decay learning rate lenearly
-                epoch_lr *= lr_decay
+                epoch_lr = lr * (max_iter - num_iters)/max_iter
+                num_iters += 1
 
             shard_in = 0
 
@@ -366,6 +350,24 @@ class SentimentNeuron(nn.Module):
         self.eval()
 
         return checkpoint['optimizer_state_dict']
+
+    def load_fit_sequence_checkpoint(self, seq_dataset, max_iter, lr, checkpoint):
+        epoch_in = checkpoint["epoch"]
+        shard_in = checkpoint["shard"]
+        batch_in = checkpoint["batch"]
+        smooth_loss = checkpoint["loss"]
+
+        # Calculate current learning rate
+        num_iters = 0
+        for i in range(epoch_in):
+            for j in range(len(seq_dataset.data)):
+                num_iters += 1
+
+        for i in range(shard_in):
+            num_iters += 1
+
+        epoch_lr = lr * (max_iter - num_iters)/max_iter
+        return epoch_in, shard_in, batch_in, smooth_loss, epoch_lr, num_iters
 
     def save(self, seq_dataset, test_data, path=""):
         # Persist model on disk with current timestamp
