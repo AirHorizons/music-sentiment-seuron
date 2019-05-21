@@ -27,8 +27,15 @@ class EncoderMidiPerform(EncoderMidi):
 
         perform_i = 0
         for piano_roll in performances:
+            current_tempo = "t_120"
             perform_encoding = []
             for i in range(len(piano_roll)):
+                # Time events are stored at the last row
+                tempo_change = piano_roll[i,-1][0]
+                if tempo_change != 0:
+                    current_tempo = "t_" + str(int(tempo_change))
+                    perform_encoding.append(current_tempo)
+
                 for j in range(len(piano_roll[i]) - 1):
                     duration = piano_roll[i,j][0]
                     velocity = int(piano_roll[i,j][1])
@@ -46,12 +53,14 @@ class EncoderMidiPerform(EncoderMidi):
                     lastVelocity = velocity
                     lastDuration = duration
 
-                # Time events are stored at the last row
-                tempo_change = piano_roll[i,-1][0]
-                if tempo_change != 0:
-                    perform_encoding.append("t_" + str(int(tempo_change)))
+                # After every 4-bar phrase (64 time spets),
+                # add current time and mark end of phrase with period.
+                if i > 0 and i % 64 == 0:
+                    perform_encoding.append(".")
+                    perform_encoding.append(current_tempo)
+                else:
+                    perform_encoding.append(",")
 
-                perform_encoding.append(",")
             perform_encoding.append(".")
             perform_encoding.append("\n")
 
@@ -79,8 +88,8 @@ class EncoderMidiPerform(EncoderMidi):
             if note == ",":
                 ts += 1
 
-            if note == "." and len(notes) > 0:
-                break
+            if note == ".":
+                ts += 1
 
             elif note[0] == "n":
                 pitch = int(note.split("_")[1])

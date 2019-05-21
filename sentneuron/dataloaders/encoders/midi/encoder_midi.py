@@ -16,10 +16,10 @@ MIN_VELOCITY = 0
 MAX_VELOCITY = 128
 
 MIN_TEMPO = 24
-MAX_TEMPO = 176
+MAX_TEMPO = 160
 
 class EncoderMidi(Encoder):
-    def load(self, datapath, sample_freq=4, piano_range=128, modulate_range=12, stretching_range=10, invert=False, retrograde=False):
+    def load(self, datapath, sample_freq=4, piano_range=128, modulate_range=10, stretching_range=10, invert=False, retrograde=False):
         encoded_midi = []
 
         vocab = set()
