@@ -69,6 +69,17 @@ def plot_heatmap(save_root, preprocessed_text, values):
         plt.savefig(os.path.join(save_root, "heatmap_" + str(i)))
         plt.clf()
 
+def plot_loss_history(save_root, train, test):
+    plt.title('Train vs Validation Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Number of Updates')
+    plt.plot(train, label='Train loss')
+    plt.plot(test, label='Test loss')
+    plt.legend()
+
+    plt.savefig(os.path.join(save_root, "loss_history"))
+    plt.clf()
+
 def normalize(coef):
     norm = np.linalg.norm(coef)
     coef = coef/norm

@@ -7,7 +7,7 @@ import os
 parser = argparse.ArgumentParser(description='generate_sequence.py')
 
 parser.add_argument('-model_path' , type=str,   required=True, help="Model metadata path."                  )
-parser.add_argument('-seq_init'   , type=str,   default=".",   help="Init of the sequence to be generated." )
+parser.add_argument('-seq_init'   , type=str,   default="\n",   help="Init of the sequence to be generated." )
 parser.add_argument('-seq_length' , type=int,   default=256,   help="Size of the sequence to be generated." )
 parser.add_argument('-temp'       , type=float, default=1.0,   help="Temperature for sampling." )
 parser.add_argument('-override'   , type=str,   default="" ,   help="Numpy array file path to override neurons." )
@@ -15,7 +15,7 @@ parser.add_argument('-n'          , type=int,   default=1 ,    help="Amount of s
 opt = parser.parse_args()
 
 # Load generative model
-neuron, seq_data, _ = sn.utils.load_generative_model(opt.model_path)
+neuron, seq_data, _ , _ = sn.utils.load_generative_model(opt.model_path)
 
 # Set initial sequence
 init = seq_data.str2symbols(opt.seq_init)

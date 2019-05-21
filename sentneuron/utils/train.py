@@ -48,10 +48,10 @@ def load_generative_model(model_path):
 
 def resume_generative_training(model_path, epochs=100, seq_length=256, lr=5e-4, grad_clip=5, batch_size=128):
     neuron, seq_data, test_data, checkpoint = load_generative_model(model_path)
-    
+
     loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
     print("Testing loss:", loss)
-    
+
     return neuron, seq_data
 
 def train_generative_model(train_data, test_data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, grad_clip=5, batch_size=128):
@@ -62,7 +62,7 @@ def train_generative_model(train_data, test_data, data_type, embed_size, hidden_
 
     # Training model for predicting elements in a sequence.
     neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
-    
+
     loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size)
     print("Testing loss:", loss)
 

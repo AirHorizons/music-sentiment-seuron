@@ -128,7 +128,7 @@ class SentimentNeuron(nn.Module):
 
             return self.sent_classfier.predict(sequences)
 
-    def evaluate(self, seq_dataset, batch_size, seq_length, test_shard_path):
+    def evaluate_sequence_fit(self, seq_dataset, seq_length, batch_size, test_shard_path):
         with torch.no_grad():
             print("Evaluating model with test data:", test_shard_path)
 
@@ -160,14 +160,12 @@ class SentimentNeuron(nn.Module):
             return loss_avg/n_batches
 
     def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
-        loss = -1
-
         try:
             self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
-            loss = self.evaluate(seq_dataset, batch_size, seq_length, test_data)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
+        loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
         return loss
 
     def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
@@ -175,7 +173,10 @@ class SentimentNeuron(nn.Module):
         loss_function = nn.CrossEntropyLoss()
 
         # Decay learning rate lenearly over the course of training
-        lr_decay = lr/(len(seq_dataset.data) * epochs)
+        max_iter = len(seq_dataset.data) * epochs
+        lr_decay = (max_iter - 1)/max_iter
+
+        print("Learning rate decay:", lr_decay)
 
         # Loss at epoch 0
         if checkpoint == None:
@@ -194,10 +195,10 @@ class SentimentNeuron(nn.Module):
             epoch_lr = lr
             for i in range(epoch_in):
                 for i in range(len(seq_dataset.data)):
-                    epoch_lr -= lr_decay
+                    epoch_lr *= lr_decay
 
             for i in range(shard_in):
-                epoch_lr -= lr_decay
+                epoch_lr *= lr_decay
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -265,7 +266,7 @@ class SentimentNeuron(nn.Module):
                 batch_in = 0
 
                 # Decay learning rate lenearly
-                epoch_lr -= lr_decay
+                epoch_lr *= lr_decay
 
             shard_in = 0
 

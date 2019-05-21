@@ -60,15 +60,14 @@ class EncoderMidi(Encoder):
 
                 if len(midi_content) > 0:
                     encoded_midi.append((midi_txt_name, midi_name + ".mid"))
-                    
+
                     # Remove empty character if it exists after the split
                     words = set(midi_content.split(" "))
                     if "" in words:
                         words.remove("")
-                    
+
                     vocab = vocab | words
 
-        print(vocab)
         return encoded_midi, vocab
 
     @abstractmethod
