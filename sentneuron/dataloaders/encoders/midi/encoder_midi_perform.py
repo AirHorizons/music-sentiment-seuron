@@ -34,6 +34,9 @@ class EncoderMidiPerform(EncoderMidi):
                 tempo_change = piano_roll[i,-1][0]
                 if tempo_change != 0:
                     current_tempo = "t_" + str(int(tempo_change))
+
+                # After every bar add last tempo mark.
+                if i % 16 == 0:
                     perform_encoding.append(current_tempo)
 
                 for j in range(len(piano_roll[i]) - 1):
@@ -53,11 +56,9 @@ class EncoderMidiPerform(EncoderMidi):
                     lastVelocity = velocity
                     lastDuration = duration
 
-                # After every 4-bar phrase (64 time spets),
-                # add current time and mark end of phrase with period.
+                # After every 4-bar phrase (64 time spets) mark end of phrase with period.
                 if i > 0 and i % 64 == 0:
                     perform_encoding.append(".")
-                    perform_encoding.append(current_tempo)
                 else:
                     perform_encoding.append(",")
 

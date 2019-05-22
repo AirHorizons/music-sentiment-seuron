@@ -262,7 +262,7 @@ class EncoderMidi(Encoder):
             time_events_in_strech = []
             for t_ev in time_events:
                 time, offset = t_ev
-                s_time = time + 0.1 * t_strech * time
+                s_time = time + 0.05 * t_strech * MAX_TEMPO
                 time_events_in_strech.append((s_time, offset))
             streches.append(time_events_in_strech)
 
