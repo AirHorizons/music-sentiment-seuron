@@ -28,19 +28,19 @@ def load_pieces(datapath):
 
 def split_data(pieces, train_percent = 0.9):
     random.Random(42).shuffle(pieces)
-
     train_size = int(train_percent * len(pieces)) + 1
 
     train, test = [], []
     for i in range(train_size):
-        random.Random(42).shuffle(pieces[i])
         for version in pieces[i]:
             train.append(version)
 
     for j in range(i + 1, len(pieces)):
-        random.Random(42).shuffle(pieces[j])
         for version in pieces[j]:
             test.append(version)
+
+    random.Random(42).shuffle(train)
+    random.Random(42).shuffle(test)
 
     return train, test
 
