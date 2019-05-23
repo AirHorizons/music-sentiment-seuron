@@ -2,7 +2,7 @@ import os
 import sys
 import random
 
-def load_pieces(datapath):
+def load_data(datapath):
     pieces = []
 
     p_ix = 0
@@ -63,10 +63,3 @@ def generate_shards(pieces, shards_amount=1, shard_prefix="", data_type="txt"):
             fp.write("\n ")
 
         fp.close()
-
-pieces_path = sys.argv[1]
-pieces = load_pieces(pieces_path)
-train,test = split_data(pieces)
-
-generate_shards(train, shards_amount=10, shard_prefix="train", data_type="midi")
-generate_shards(test, shards_amount=1, shard_prefix="test", data_type="midi")

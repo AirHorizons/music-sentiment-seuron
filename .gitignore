@@ -2,10 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
-output/*.txt
-output/*.mid
-output/results/*.png
-trained_models/*.json
-trained_models/*.pth
-trained_models/*.txt
+
+output/*
+output/.gitkeep
+
+trained/*
+!trained/.gitkeep
+
 *.npy

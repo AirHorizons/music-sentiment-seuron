@@ -21,12 +21,12 @@ opt = parser.parse_args()
 
 # Train a generative model to predict characters in a sequence
 if opt.model_path == "":
-    neuron, seq_data = sn.utils.train_generative_model(opt.train_data, opt.test_data, opt.data_type, \
+    neuron, seq_data = sn.train.train_generative_model(opt.train_data, opt.test_data, opt.data_type, \
                                                        opt.embed_size, opt.hidden_size, opt.n_layers, \
                                                        opt.dropout, opt.epochs, opt.seq_length, opt.lr, \
                                                        opt.grad_clip, opt.batch_size)
 else:
-    neuron, seq_data = sn.utils.resume_generative_training(opt.model_path, opt.epochs, opt.seq_length, \
+    neuron, seq_data = sn.train.resume_generative_training(opt.model_path, opt.epochs, opt.seq_length, \
                                                            opt.lr, opt.grad_clip, opt.batch_size)
 
 # Save trainned model for sampleing

@@ -5,24 +5,7 @@ import numpy      as np
 import sentneuron as sn
 
 # Local imports
-from .plot import *
-from .ga   import GeneticAlgorithm
-
-from sklearn.metrics import confusion_matrix
-
-def create_data_with_type(data_type, seq_data_path, vocab=None, data=None):
-    seq_data = None
-
-    if data_type == "txt":
-        seq_data = sn.encoders.EncoderText(seq_data_path, vocab, data)
-    elif data_type == "midi_note":
-        seq_data = sn.encoders.midi.EncoderMidiNote(seq_data_path, vocab, data)
-    elif data_type == "midi_chord":
-        seq_data = sn.encoders.midi.EncoderMidiChord(seq_data_path, vocab, data)
-    elif data_type == "midi_perform":
-        seq_data = sn.encoders.midi.EncoderMidiPerform(seq_data_path, vocab, data)
-
-    return seq_data
+from ..dataloaders import *
 
 def load_generative_model(model_path):
     with open(model_path + "_meta.json", 'r') as fp:
@@ -34,7 +17,7 @@ def load_generative_model(model_path):
         fp.close()
 
     # Load pre-calculated vocabulary
-    seq_data = create_data_with_type(meta["data_type"], None, meta["vocab"], meta["train_data"])
+    seq_data = load_generative_data_with_type(meta["data_type"], None, meta["vocab"], meta["train_data"])
 
     # Model layer sizes
     input_size  = seq_data.encoding_size
@@ -55,7 +38,7 @@ def resume_generative_training(model_path, epochs=100, seq_length=256, lr=5e-4, 
     return neuron, seq_data
 
 def train_generative_model(train_data, test_data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, grad_clip=5, batch_size=128):
-    seq_data = create_data_with_type(data_type, train_data)
+    seq_data = load_generative_data_with_type(data_type, train_data)
 
     input_size  = seq_data.encoding_size
     output_size = seq_data.encoding_size
@@ -69,7 +52,7 @@ def train_generative_model(train_data, test_data, data_type, embed_size, hidden_
     return neuron, seq_data
 
 def train_supervised_classification_model(seq_data_path, data_type, sent_data, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, lr=5e-4, batch_size=128):
-    seq_data = create_data_with_type(data_type, seq_data_path)
+    seq_data = load_generative_data_with_type(data_type, seq_data_path)
 
     input_size  = seq_data.encoding_size
     output_size = 1
@@ -155,23 +138,3 @@ def tranform_sentiment_data(neuron, seq_data, xs, xs_filename):
         np.save(xs_filename, xs)
 
     return xs
-
-
-def evolve_weights(neuron, seq_data, results_path):
-    n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
-    sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
-    print(sentneuron_ixs)
-
-    # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
-    plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
-
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
-    best_ind, best_fit = genAlg.evolve()
-
-    override = {}
-    for i in range(len(sentneuron_ixs)):
-        override[int(sentneuron_ixs[i])] = best_ind[i]
-
-    print(override)
-    with open('../output/ga_best.json', 'w') as fp:
-        json.dump(override, fp)

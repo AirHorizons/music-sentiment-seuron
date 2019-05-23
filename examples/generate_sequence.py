@@ -1,8 +1,8 @@
 import json
 import argparse
 import random
-import sentneuron as sn
 import os
+import sentneuron as sn
 
 parser = argparse.ArgumentParser(description='generate_sequence.py')
 

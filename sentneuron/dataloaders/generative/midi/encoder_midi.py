@@ -18,8 +18,10 @@ MAX_VELOCITY = 128
 MIN_TEMPO = 24
 MAX_TEMPO = 160
 
+MAX_PITCH = 128
+
 class EncoderMidi(Encoder):
-    def load(self, datapath, sample_freq=4, piano_range=128, modulate_range=10, stretching_range=10, invert=False, retrograde=False):
+    def load(self, datapath, sample_freq=4, piano_range=(33, 93), modulate_range=10, stretching_range=10, invert=False, retrograde=False):
         encoded_midi = []
 
         vocab = set()
@@ -186,16 +188,17 @@ class EncoderMidi(Encoder):
 
     def notes2piano_roll(self, transpositions, time_steps, piano_range):
         scores = []
+
+        min_pitch, max_pitch = piano_range
         for t_ix in range(len(transpositions)):
-            piano_roll = np.zeros((time_steps, piano_range))
+            # Create piano roll with calcualted size
+            piano_roll = np.zeros((time_steps, MAX_PITCH))
+
             for note in transpositions[t_ix]:
                 pitch, duration, velocity, offset = n
 
                 # Force notes to be inside the specified piano_range
-                while pitch < 0:
-                    pitch += 12
-                while pitch >= piano_range:
-                    pitch -= 12
+                pitch = self.__clamp_pitch(pitch, max_pitch, min_pitch)
 
                 piano_roll[offset, pitch] = 1
 
@@ -205,10 +208,13 @@ class EncoderMidi(Encoder):
 
     def notes2piano_roll_performances(self, transpositions, time_streches, time_steps, piano_range):
         performances = []
+
+        min_pitch, max_pitch = piano_range
         for t_ix in range(len(transpositions)):
             for s_ix in range(len(time_streches)):
-                # Add one dimension to very entry to store velocity and duration
-                piano_roll = np.zeros((time_steps, piano_range + 1, 2))
+                # Create piano roll with calcualted size.
+                # Add one dimension to very entry to store velocity and duration.
+                piano_roll = np.zeros((time_steps, MAX_PITCH + 1, 2))
 
                 for note in transpositions[t_ix]:
                     pitch, duration, velocity, offset = note
@@ -216,12 +222,8 @@ class EncoderMidi(Encoder):
                         continue
 
                     # Force notes to be inside the specified piano_range
-                    while pitch < 0:
-                        pitch += 12
-                    while pitch >= piano_range:
-                        pitch -= 12
+                    pitch = self.__clamp_pitch(pitch, max_pitch, min_pitch)
 
-                    # offset_shift = offset + ((t_ix * n_tr) + s_ix) * time_steps
                     piano_roll[offset, pitch][0] = self.__clamp_duration(duration)
                     piano_roll[offset, pitch][1] = self.discretize_value(velocity, bins=32, range=(MIN_VELOCITY, MAX_VELOCITY))
 
@@ -280,12 +282,18 @@ class EncoderMidi(Encoder):
     def discretize_value(self, val, bins, range):
         min_val, max_val = range
 
-        velocity = int(max(min_val, val))
-        velocity = int(min(val, max_val))
+        val = int(max(min_val, val))
+        val = int(min(val, max_val))
 
         bin_size = (max_val/bins)
+        return ma.floor(val/bin_size) * bin_size
 
-        return ma.floor(velocity/bin_size) * bin_size
+    def __clamp_pitch(self, pitch, max, min):
+        while pitch < min:
+            pitch += 12
+        while pitch >= max:
+            pitch -= 12
+        return pitch
 
     def __clamp_duration(self, duration, max=THREE_DOTTED_BREVE, min=THREE_DOTTED_32ND):
         # Max duration is 3-dotted breve
