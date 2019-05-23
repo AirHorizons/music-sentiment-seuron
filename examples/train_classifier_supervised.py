@@ -24,4 +24,4 @@ sn.utils.train_supervised_classification_model(opt.seq_data_path, opt.seq_data_t
                                               opt.dropout, opt.epochs, opt.lr, opt.batch_size)
 
 dataset_name = opt.sent_data_path.split("/")[-1]
-neuron.save(seq_data, "../trained_models/" + dataset_name)
+neuron.save(seq_data, "../trained/" + dataset_name)

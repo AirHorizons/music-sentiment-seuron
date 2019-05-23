@@ -31,4 +31,4 @@ else:
 
 # Save trainned model for sampleing
 dataset_name = os.path.basename(opt.train_data)
-neuron.save(seq_data, opt.test_data, "../trained_models/" + dataset_name)
+neuron.save(seq_data, opt.test_data, "../trained/" + dataset_name)
