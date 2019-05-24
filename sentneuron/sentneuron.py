@@ -99,7 +99,7 @@ class SentimentNeuron(nn.Module):
     def fit_sentiment(self, trX, trY, teX, teY, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
         scores = []
 
-        # Hyper-parameter C optimization
+        # Hyper-parameter optimization
         for i, c in enumerate(C):
             logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
             logreg_model.fit(trX, trY)
@@ -162,14 +162,19 @@ class SentimentNeuron(nn.Module):
 
     def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
         try:
-            self.__fit_sequence(seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
+            self.__fit_sequence(seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
+        # Save final model
+        self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
+
+        # Test model
         loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
+
         return loss
 
-    def __fit_sequence(self, seq_dataset, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
+    def __fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
@@ -254,6 +259,9 @@ class SentimentNeuron(nn.Module):
                 num_iters += 1
 
             shard_in = 0
+
+            # Save preliminary model
+            self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
 
     def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():

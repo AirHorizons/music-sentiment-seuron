@@ -5,7 +5,9 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 class Encoder(ABC):
-    def __init__(self, datapath=None, vocab=None, data=None):
+    def __init__(self, datapath=None, vocab=None, data=None, name="sentneuron"):
+        self.name = name
+        
         if datapath != None:
             self.data, self.vocab = self.load(datapath)
         else:
