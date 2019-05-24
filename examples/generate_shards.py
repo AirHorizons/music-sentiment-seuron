@@ -7,7 +7,7 @@ parser.add_argument('-datadir' , type=str, required=True, help="Directory with t
 opt = parser.parse_args()
 
 # Load each line of each file as a sentence
-data = sn.utils.load_pieces(opt.datadir)
+data = sn.utils.load_data(opt.datadir)
 
 # Split these sentences into train and test sets
 train, test = sn.utils.split_data(data)

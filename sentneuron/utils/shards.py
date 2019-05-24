@@ -45,12 +45,12 @@ def split_data(pieces, train_percent = 0.9):
     return train, test
 
 def generate_shards(pieces, shards_amount=1, shard_prefix="", data_type="txt"):
+    if not os.path.exists("shards"):
+        os.mkdir("shards")
+
     pieces_per_shard = int(len(pieces)/shards_amount)
 
     for i in range(shards_amount):
-        if not os.path.exists("shards"):
-            os.mkdir("shards")
-
         fp = open(os.path.join("shards", shard_prefix + "_shard_" + str(i) + ".txt"), "a")
 
         # If this data is midi, create a fake empty midi file because the dataloader requires it
