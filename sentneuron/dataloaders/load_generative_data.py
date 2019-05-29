@@ -4,7 +4,10 @@ from .generative import *
 def load_generative_data_with_type(data_type, data_path, vocab=None, data=None):
     gen_data = None
 
-    name = os.path.basename(data_path)
+    name = "sentneuron"
+    if data_path != None:
+        name = os.path.basename(data_path)
+
     if data_type == "txt":
         gen_data = EncoderText(data_path, vocab, data, name)
     elif data_type == "midi_note":

@@ -15,7 +15,7 @@ parser.add_argument('-n'          , type=int,   default=1 ,    help="Amount of s
 opt = parser.parse_args()
 
 # Load generative model
-neuron, seq_data, _ , _ = sn.utils.load_generative_model(opt.model_path)
+neuron, seq_data, _ , _ = sn.train.load_generative_model(opt.model_path)
 
 # Set initial sequence
 init = seq_data.str2symbols(opt.seq_init)
