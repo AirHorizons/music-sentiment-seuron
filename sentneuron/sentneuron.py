@@ -387,7 +387,8 @@ class SentimentNeuron(nn.Module):
             'optimizer_state_dict': self.training_state["optim"],
         }, model_filename)
 
-        self.training_state.pop("optim", None)
+        # Temporarily remove optimizer state
+        optim_state = self.training_state.pop("optim", None)
 
         train_filename = path + "_train.json"
         with open(train_filename, 'w') as fp:
@@ -408,6 +409,9 @@ class SentimentNeuron(nn.Module):
             meta_data["n_layers"]    = self.n_layers
             meta_data["dropout"]     = self.dropout
             json.dump(meta_data, fp)
+
+        # Add optimizer state back
+        self.training_state["optim"] = optim_state
 
         print("Saved model:", model_filename)
 
