@@ -133,7 +133,7 @@ class SentimentNeuron(nn.Module):
             print("Evaluating model with test data:", test_shard_path)
 
             # Loss function
-            loss_function = nn.CrossEntropyLoss(reduction='sum')
+            loss_function = nn.CrossEntropyLoss()
 
             h_init = self.init_hidden(batch_size)
             shard_content = seq_dataset.read(test_shard_path)
@@ -158,7 +158,7 @@ class SentimentNeuron(nn.Module):
                 loss_avg += loss.item()/seq_length
 
             # Return perplexity of the model
-            return np.exp(loss_avg/n_batches)
+            return loss_avg/n_batches
 
     def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
         try:
@@ -184,9 +184,9 @@ class SentimentNeuron(nn.Module):
         # Loss at epoch 0
         if checkpoint == None:
             epoch_in, shard_in, batch_in, epoch_lr = 0, 0, 0, lr
-            smooth_loss = -torch.log(torch.tensor(1.0/seq_dataset.encoding_size)).item() * seq_length
+            loss_avg = 0
         else:
-            epoch_in, shard_in, batch_in, smooth_loss, epoch_lr, num_iters = self.load_fit_sequence_checkpoint(seq_dataset, max_iter, lr, checkpoint)
+            epoch_in, shard_in, batch_in, loss_avg, epoch_lr, num_iters = self.load_fit_sequence_checkpoint(seq_dataset, max_iter, lr, checkpoint)
 
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
@@ -245,10 +245,10 @@ class SentimentNeuron(nn.Module):
                     self.training_state["optim"] = optimizer.state_dict()
 
                     # Calculate average loss and log the results of this batch
-                    smooth_loss = smooth_loss * 0.999 + loss.item() * 0.001
-                    self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), smooth_loss, filename, seq_dataset, shard_content)
+                    loss_avg += loss.item()/seq_length
+                    self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg/(batch_ix + 1), filename, seq_dataset, shard_content)
 
-                    self.training_state["loss"] = smooth_loss
+                    self.training_state["loss"] = loss_avg
 
                 # Apply learning rate decay before the next shard
                 batch_in = 0
@@ -262,6 +262,10 @@ class SentimentNeuron(nn.Module):
             # Save preliminary model
             self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
 
+            # Test model
+            test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
+            print('test loss = ', test_loss)
+
     def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
@@ -271,7 +275,7 @@ class SentimentNeuron(nn.Module):
             print('lr:', epoch_lr)
             print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
-            print('loss = ', loss)
+            print('train loss = ', loss)
             print('----\n' + str(sample_dat) + '\n----')
 
     def __batchify_sequence(self, sequence, batch_size=1):
