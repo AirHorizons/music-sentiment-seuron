@@ -246,10 +246,11 @@ class SentimentNeuron(nn.Module):
 
                     # Calculate average loss and log the results of this batch
                     loss_avg = 0.99 * loss_avg + 0.01 * loss.item()/seq_length
-                    if batch_ix % 10 == 0:
-                        self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, filename, seq_dataset, shard_content)
-
                     self.training_state["loss"] = loss_avg
+
+                # Test model
+                test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
+                self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, test_loss, filename, seq_dataset, shard_content)
 
                 # Apply learning rate decay before the next shard
                 batch_in = 0
@@ -263,11 +264,7 @@ class SentimentNeuron(nn.Module):
             # Save preliminary model
             self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
 
-            # Test model
-            test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
-            print('test loss = ', test_loss)
-
-    def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
+    def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, train_loss, test_loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
             i_init, i_end = sample_init_range
             sample_dat, _ = self.generate_sequence(seq_dataset, data[i_init:i_end], sample_len=200)
@@ -276,7 +273,8 @@ class SentimentNeuron(nn.Module):
             print('lr:', epoch_lr)
             print('filename:', filename)
             print('batch: {}/{}'.format(batch_ix[0], batch_ix[1]))
-            print('train loss = ', loss)
+            print('train loss = ', train_loss)
+            print('test loss = ', test_loss)
             print('----\n' + str(sample_dat) + '\n----')
 
     def __batchify_sequence(self, sequence, batch_size=1):
