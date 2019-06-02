@@ -133,7 +133,7 @@ class SentimentNeuron(nn.Module):
             print("Evaluating model with test data:", test_shard_path)
 
             # Loss function
-            loss_function = nn.CrossEntropyLoss()
+            loss_function = nn.CrossEntropyLoss(reduction='sum')
 
             h_init = self.init_hidden(batch_size)
             shard_content = seq_dataset.read(test_shard_path)
@@ -156,10 +156,6 @@ class SentimentNeuron(nn.Module):
 
                 h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
                 loss_avg += loss.item()/seq_length
-
-                print('batch: {}/{}'.format(batch_ix, n_batches - 1))
-                print('loss = ', loss_avg/(batch_ix + 1))
-                print('-------')
 
             # Return perplexity of the model
             return np.exp(loss_avg/n_batches)
