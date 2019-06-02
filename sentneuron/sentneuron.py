@@ -129,21 +129,25 @@ class SentimentNeuron(nn.Module):
             return self.sent_classfier.predict(sequences)
 
     def evaluate_sequence_fit(self, seq_dataset, seq_length, batch_size, test_shard_path):
+        # Turn on evaluation mode which disables dropout.
+        self.eval()
+
+        print("Evaluating model with test data:", test_shard_path)
+
+        # Loss function
+        loss_function = nn.CrossEntropyLoss()
+
+        h_init = self.init_hidden(batch_size)
+        shard_content = seq_dataset.read(test_shard_path)
+
+        sequence = seq_dataset.encode_sequence(shard_content)
+        sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
+
+        n_batches = sequence.size(0)//seq_length
+
+        loss_avg = 0
+
         with torch.no_grad():
-            print("Evaluating model with test data:", test_shard_path)
-
-            # Loss function
-            loss_function = nn.CrossEntropyLoss()
-
-            h_init = self.init_hidden(batch_size)
-            shard_content = seq_dataset.read(test_shard_path)
-
-            sequence = seq_dataset.encode_sequence(shard_content)
-            sequence = self.__batchify_sequence(torch.tensor(sequence, dtype=torch.uint8, device=self.device), batch_size)
-
-            n_batches = sequence.size(0)//seq_length
-
-            loss_avg = 0
             for batch_ix in range(n_batches - 1):
                 batch = sequence.narrow(0, batch_ix * seq_length, seq_length + 1).long()
 
@@ -215,6 +219,9 @@ class SentimentNeuron(nn.Module):
 
                 # Each epoch consists of one entire pass over the dataset
                 for batch_ix in range(batch_in, n_batches - 1):
+                    # Turn on training mode which enables dropout.
+                    self.train()
+
                     self.training_state["batch"] = batch_ix
 
                     # Reset optimizer grad
