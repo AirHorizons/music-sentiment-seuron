@@ -246,7 +246,8 @@ class SentimentNeuron(nn.Module):
 
                     # Calculate average loss and log the results of this batch
                     loss_avg = 0.99 * loss_avg + 0.01 * loss.item()/seq_length
-                    self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, filename, seq_dataset, shard_content)
+                    if batch_ix % 10 == 0:
+                        self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, filename, seq_dataset, shard_content)
 
                     self.training_state["loss"] = loss_avg
 
