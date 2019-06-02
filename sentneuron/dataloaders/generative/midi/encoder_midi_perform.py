@@ -89,8 +89,11 @@ class EncoderMidiPerform(EncoderMidi):
             if note == ",":
                 ts += 1
 
-            if note == ".":
+            elif note == ".":
                 ts += 1
+
+            elif note == "\n" and len(notes) > 0:
+                break
 
             elif note[0] == "n":
                 pitch = int(note.split("_")[1])

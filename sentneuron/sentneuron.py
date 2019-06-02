@@ -157,6 +157,10 @@ class SentimentNeuron(nn.Module):
                 h_init = (ag.Variable(h[0].data), ag.Variable(h[1].data))
                 loss_avg += loss.item()/seq_length
 
+                print('batch: {}/{}'.format(batch_ix, n_batches - 1))
+                print('loss = ', loss_avg/(batch_ix + 1))
+                print('-------')
+
             # Return perplexity of the model
             return np.exp(loss_avg/n_batches)
 
@@ -171,7 +175,6 @@ class SentimentNeuron(nn.Module):
 
         # Test model
         loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
-
         return loss
 
     def __fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
