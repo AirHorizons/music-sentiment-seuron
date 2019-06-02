@@ -10,7 +10,7 @@ parser.add_argument('-data_type'  , type=str,   required=True,  help="Type of th
 parser.add_argument('-embed_size' , type=int,   default=64   ,  help="Embedding layer size."    )
 parser.add_argument('-hidden_size', type=int,   default=128  ,  help="Hidden layer size."       )
 parser.add_argument('-n_layers'   , type=int,   default=1    ,  help="Number of LSTM layers."   )
-parser.add_argument('-dropout'    , type=int,   default=0    ,  help="Dropout probability."     )
+parser.add_argument('-dropout'    , type=float, default=0    ,  help="Dropout probability."     )
 parser.add_argument('-epochs'     , type=int,   default=100  ,  help="Training epochs."         )
 parser.add_argument('-seq_length' , type=int,   default=256  ,  help="Training batch size."     )
 parser.add_argument('-lr'         , type=float, default=5e-4 ,  help="Learning rate."           )
