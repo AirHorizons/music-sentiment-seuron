@@ -255,9 +255,10 @@ class SentimentNeuron(nn.Module):
                     loss_avg = 0.99 * loss_avg + 0.01 * loss.item()/seq_length
                     self.training_state["loss"] = loss_avg
 
-                # Test model
-                test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
-                self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, test_loss, filename, seq_dataset, shard_content)
+                    # Test model
+                    if batch_ix % 100 == 0:
+                        test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
+                        self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, test_loss, filename, seq_dataset, shard_content)
 
                 # Apply learning rate decay before the next shard
                 batch_in = 0
