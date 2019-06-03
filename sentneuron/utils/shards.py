@@ -26,11 +26,11 @@ def load_data(datapath):
 
     return pieces
 
-def split_data(pieces, train_percent = 0.9):
+def split_data(pieces, train_percent = 0.9, gen_valid = False):
     random.Random(42).shuffle(pieces)
     train_size = int(train_percent * len(pieces)) + 1
 
-    train, test = [], []
+    train, valid, test = [], [], []
     for i in range(train_size):
         for version in pieces[i]:
             train.append(version)
@@ -42,7 +42,11 @@ def split_data(pieces, train_percent = 0.9):
     random.Random(42).shuffle(train)
     random.Random(42).shuffle(test)
 
-    return train, test
+    if gen_valid:
+        valid = test[:len(test)//2]
+        test  = test[len(test)//2:]
+
+    return train, valid, test
 
 def generate_shards(pieces, shards_amount=1, shard_prefix="", data_type="txt"):
     if not os.path.exists("shards"):

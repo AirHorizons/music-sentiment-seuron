@@ -129,10 +129,10 @@ class SentimentNeuron(nn.Module):
             return self.sent_classfier.predict(sequences)
 
     def evaluate_sequence_fit(self, seq_dataset, seq_length, batch_size, test_shard_path):
+        print("Evaluating model with test data:", test_shard_path)
+
         # Turn on evaluation mode which disables dropout.
         self.eval()
-
-        print("Evaluating model with test data:", test_shard_path)
 
         # Loss function
         loss_function = nn.CrossEntropyLoss()
@@ -199,6 +199,9 @@ class SentimentNeuron(nn.Module):
             for shard in range(shard_in, len(seq_dataset.data)):
                 self.training_state["shard"] = shard
 
+                # Turn on training mode which enables dropout.
+                self.train()
+
                 # Start optimizer with current learning rate
                 optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
                 if checkpoint != None and epoch_in == epoch and shard_in == shard:
@@ -219,9 +222,6 @@ class SentimentNeuron(nn.Module):
 
                 # Each epoch consists of one entire pass over the dataset
                 for batch_ix in range(batch_in, n_batches - 1):
-                    # Turn on training mode which enables dropout.
-                    self.train()
-
                     self.training_state["batch"] = batch_ix
 
                     # Reset optimizer grad
