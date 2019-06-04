@@ -256,7 +256,7 @@ class SentimentNeuron(nn.Module):
                     self.training_state["loss"] = loss_avg
 
                     # Test model
-                    if batch_ix % 100 == 0:
+                    if batch_ix % 500 == 0:
                         test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
                         self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, test_loss, filename, seq_dataset, shard_content)
 
