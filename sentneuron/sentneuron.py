@@ -192,6 +192,11 @@ class SentimentNeuron(nn.Module):
         else:
             epoch_in, shard_in, batch_in, loss_avg, epoch_lr, num_iters = self.load_fit_sequence_checkpoint(seq_dataset, max_iter, lr, checkpoint)
 
+        # Start optimizer with current learning rate
+        optimizer = optim.Adam(self.parameters(), lr=lr, betas=(0.7, 0.999))
+        if checkpoint != None:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
 
@@ -201,11 +206,6 @@ class SentimentNeuron(nn.Module):
 
                 # Turn on training mode which enables dropout.
                 self.train()
-
-                # Start optimizer with current learning rate
-                optimizer = optim.Adam(self.parameters(), lr=epoch_lr)
-                if checkpoint != None and epoch_in == epoch and shard_in == shard:
-                    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
                 # Initialize states to zero at the beginning of each shard
                 h_init = self.init_hidden(batch_size)
