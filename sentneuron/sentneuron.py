@@ -182,7 +182,7 @@ class SentimentNeuron(nn.Module):
         loss_function = nn.CrossEntropyLoss()
 
         # Decay learning rate lenearly over the course of training
-        max_iter = len(seq_dataset.data) * epochs
+        max_iter = epochs
         num_iters = 1
 
         # Loss at epoch 0
@@ -192,13 +192,13 @@ class SentimentNeuron(nn.Module):
         else:
             epoch_in, shard_in, batch_in, loss_avg, epoch_lr, num_iters = self.load_fit_sequence_checkpoint(seq_dataset, max_iter, lr, checkpoint)
 
-        # Start optimizer with current learning rate
-        optimizer = optim.Adam(self.parameters(), lr=lr, betas=(0.7, 0.999))
-        if checkpoint != None:
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
         for epoch in range(epoch_in, epochs):
             self.training_state["epoch"] = epoch
+
+            # Start optimizer with current learning rate
+            optimizer = optim.Adam(self.parameters(), lr=epoch_lr, betas=(0.7, 0.999))
+            if checkpoint != None:
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
             # Iterate on each shard of the dataset
             for shard in range(shard_in, len(seq_dataset.data)):
@@ -260,12 +260,11 @@ class SentimentNeuron(nn.Module):
                         test_loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
                         self.__fit_sequence_log(epoch, epoch_lr, (batch_ix, n_batches - 1), loss_avg, test_loss, filename, seq_dataset, shard_content)
 
-                # Apply learning rate decay before the next shard
                 batch_in = 0
 
-                # Decay learning rate lenearly
-                epoch_lr = lr * (max_iter - num_iters)/max_iter
-                num_iters += 1
+            # Decay learning rate linearly
+            epoch_lr = lr * (max_iter - num_iters)/max_iter
+            num_iters += 1
 
             shard_in = 0
 

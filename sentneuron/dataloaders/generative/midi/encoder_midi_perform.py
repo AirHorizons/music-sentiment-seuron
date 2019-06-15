@@ -57,10 +57,7 @@ class EncoderMidiPerform(EncoderMidi):
                     lastDuration = duration
 
                 # After every 4-bar phrase (64 time spets) mark end of phrase with period.
-                if i > 0 and i % 64 == 0:
-                    perform_encoding.append(".")
-                else:
-                    perform_encoding.append(",")
+                perform_encoding.append(",")
 
             perform_encoding.append(".")
             perform_encoding.append("\n")
