@@ -4,6 +4,8 @@ import json
 import numpy      as np
 import sentneuron as sn
 
+from sklearn.metrics import confusion_matrix
+
 # Local imports
 from ..dataloaders import *
 
