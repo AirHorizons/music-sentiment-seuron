@@ -17,11 +17,10 @@ parser.add_argument('-batch_size'     , type=int,   default=128  ,  help="Batch 
 opt = parser.parse_args()
 
 # Load sentiment data from given path
-sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", pad=True)
-
-sn.utils.train_supervised_classification_model(opt.seq_data_path, opt.seq_data_type, sent_data, \
-                                              opt.embed_size, opt.hidden_size, opt.n_layers,   \
-                                              opt.dropout, opt.epochs, opt.lr, opt.batch_size)
+sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", "filepath", pad=True)
+sn.train.train_supervised_classification_model(opt.seq_data_path, opt.seq_data_type, sent_data, \
+                                               opt.embed_size, opt.hidden_size, opt.n_layers,   \
+                                               opt.dropout, opt.epochs, opt.lr, opt.batch_size)
 
 dataset_name = opt.sent_data_path.split("/")[-1]
 neuron.save(seq_data, "../trained/" + dataset_name)

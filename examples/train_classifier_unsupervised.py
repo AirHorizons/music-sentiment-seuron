@@ -27,13 +27,16 @@ neuron, seq_data, _ , _ = sn.train.load_generative_model(opt.model_path)
 sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", "filepath", opt.pad, opt.balance, opt.separate)
 logreg_model = sn.train.train_unsupervised_classification_model(neuron, seq_data, sent_data)
 
-# sn.utils.evolve_weights(neuron, seq_data, opt.results_path)
+# evolve weights to generate either positive or negative pieces
+sn.evolve.evolve_weights(neuron, seq_data, opt.results_path)
 
 dataset_name = opt.model_path.split("/")[-1]
 
 gen_pieces = []
+piece_init = "t_59 v_108 d_16th_0 n_33 v_108 d_16th_0 n_45 v_108 d_16th_0 n_61 v_108 d_16th_0 n_71 , v_108 d_16th_0 n_33 v_108 d_16th_0 n_45 v_108 d_16th_0 n_61 v_108 d_16th_0 n_71 , , v_108 d_16th_0 n_33 v_108 d_16th_0 n_45 v_108 d_16th_0 n_61 v_108 d_16th_0 n_71 , , v_108 d_16th_0 n_33 v_108 d_16th_0 n_45 v_108 d_16th_0 n_61 v_108 d_16th_0 n_67 , v_108 d_16th_0 n_33 v_108 d_16th_0 n_45 v_108 d_16th_0 n_61 v_108 d_16th_0 n_71 , , v_108 d_16th_0 n_38 v_108 d_16th_0 n_50 v_108 d_16th_0 n_62 v_108 d_16th_0 n_66 v_108 d_16th_0 n_74 , , , ,"
+
 for i in range(30):
-    ini_seq = seq_data.str2symbols("\n . ")
+    ini_seq = seq_data.str2symbols(piece_init)
     gen_seq, final_cell = neuron.generate_sequence(seq_data, ini_seq, 128, 1.0)
     gen_pieces.append(final_cell)
 
