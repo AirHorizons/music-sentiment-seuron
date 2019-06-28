@@ -60,8 +60,8 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
     output_size = 1
 
     for train, test in sent_data.split:
-        trX, trY = sent_data.unpack_fold(train)
-        teX, teY = sent_data.unpack_fold(test)
+        trX, trY, trNam = sent_data.unpack_fold(train)
+        teX, teY, teNam = sent_data.unpack_fold(test)
 
         print("Trainning sentiment classifier.")
         neuron = sn.SentimentLSTM(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
