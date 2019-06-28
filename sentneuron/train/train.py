@@ -64,7 +64,7 @@ def train_supervised_classification_model(seq_data_path, data_type, sent_data, e
         teX, teY, teNam = sent_data.unpack_fold(test)
 
         print("Trainning sentiment classifier.")
-        neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
+        neuron = sn.SentimentLSTM(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
         score = neuron.fit_sentiment(seq_data, trX, trY, teX, teY, epochs, lr, batch_size)
 
         print('%05.3f Test accuracy' % score)
