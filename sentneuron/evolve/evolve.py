@@ -1,3 +1,5 @@
+import numpy as np
+
 def evolve_weights(neuron, seq_data, results_path):
     n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
     sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
