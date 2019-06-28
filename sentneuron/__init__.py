@@ -6,3 +6,4 @@ from .models       import *
 from .train        import *
 from .utils        import *
 from .sentneuron   import SentimentNeuron
+from .sentlstm     import SentimentLSTM
