@@ -25,7 +25,7 @@ neuron, seq_data, _ = sn.utils.load_generative_model(opt.model_path)
 
 # Load sentiment data from given path
 sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", "filepath", opt.pad, opt.balance, opt.separate)
-logreg_model = sn.utils.train_unsupervised_classification_model(neuron, seq_data, sent_data)
+logreg_model = sn.train.train_unsupervised_classification_model(neuron, seq_data, sent_data)
 
 # sn.utils.evolve_weights(neuron, seq_data, opt.results_path)
 
