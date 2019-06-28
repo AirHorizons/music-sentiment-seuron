@@ -10,7 +10,7 @@ def evolve_weights(neuron, seq_data, results_path):
     print("total sentneuron_ixs:", len(sentneuron_ixs))
     print(sentneuron_ixs)
 
-    plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
+    sn.utils.plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
     sn.utils.plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
 
     genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
