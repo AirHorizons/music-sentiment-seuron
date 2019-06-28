@@ -1,4 +1,5 @@
 import numpy as np
+import sentneuron as sn
 
 def evolve_weights(neuron, seq_data, results_path):
     n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
@@ -6,7 +7,7 @@ def evolve_weights(neuron, seq_data, results_path):
     print(sentneuron_ixs)
 
     # plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
-    plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
+    sn.utils.plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
 
     genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
     best_ind, best_fit = genAlg.evolve()
