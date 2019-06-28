@@ -21,7 +21,7 @@ parser.set_defaults(separate=False)
 
 opt = parser.parse_args()
 
-neuron, seq_data, _ = sn.utils.load_generative_model(opt.model_path)
+neuron, seq_data, _ = sn.train.load_generative_model(opt.model_path)
 
 # Load sentiment data from given path
 sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", "filepath", opt.pad, opt.balance, opt.separate)
