@@ -16,6 +16,9 @@ def evolve_weights(neuron, seq_data, results_path):
     genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
     best_ind, best_fit = genAlg.evolve()
 
+    print("best_ind", best_ind)
+    print("best_fit", best_fit)
+
     override = {}
     for i in range(len(sentneuron_ixs)):
         override[int(sentneuron_ixs[i])] = best_ind[i]

@@ -33,8 +33,8 @@ class GeneticAlgorithm:
             override_neurons[n_ix] = ind[i]
 
         for i in range(experiments):
-            ini_seq = self.seq_data.str2symbols(".")
-            gen_seq = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
+            ini_seq = self.seq_data.str2symbols("\n")
+            gen_seq, _ = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
             guess = self.neuron.predict_sentiment(self.seq_data, gen_seq)
 
             label_guess.append((guess - self.ofInterest)**2)
