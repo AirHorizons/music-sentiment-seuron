@@ -35,16 +35,16 @@ class GeneticAlgorithm:
         for i in range(experiments):
             ini_seq = self.seq_data.str2symbols("\n")
             gen_seq, _ = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
-            guess = self.neuron.predict_sentiment(self.seq_data, gen_seq)
+            guess = self.neuron.predict_sentiment(self.seq_data, [gen_seq])
 
             label_guess.append((guess - self.ofInterest)**2)
 
         # Penalize this individual with the prediction error
-        validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_shortest.txt"
-        error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
+        # validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_shortest.txt"
+        # error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
-        fitness = error + (sum(label_guess)/len(label_guess))
-        return 2.0 - fitness
+        fitness = (sum(label_guess)/len(label_guess))
+        return 1.0 - fitness
         # return (ind - self.ofInterest)**2
 
     def evaluate(self):
@@ -67,13 +67,13 @@ class GeneticAlgorithm:
 
     def select(self, fitness):
         descending_args = np.argsort(-fitness)
-        sorted_inds = list(self.inds[descending_args])
-        sorted_fits = list(fitness[descending_args])
+        sorted_inds = self.inds[descending_args]
+        sorted_fits = fitness[descending_args]
 
         nextPop = []
         for i in range(self.popSize):
             if i < self.elitism:
-                nextPop.append(sorted_inds[i])
+                nextPop.append(sorted_inds[i][0])
             else:
                 nextPop.append(self.roullete_wheel(sorted_inds, sorted_fits))
 
@@ -86,14 +86,13 @@ class GeneticAlgorithm:
         for i in range(self.popSize):
             current += sorted_fits[i]
             if current >= pick:
-                return sorted_inds[i]
+                return sorted_inds[i][0]
 
     def evolve(self, epochs=10):
         for i in range(epochs):
             print("-> Epoch", i)
             fitness = self.evaluate()
             nextPop = self.select(fitness)
-            print(self.inds)
             print(fitness)
             self.cross(nextPop)
             self.mutate(nextPop)
