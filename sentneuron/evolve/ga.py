@@ -1,27 +1,18 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, popSize=100, crossRate=0.95, mutRate=0.1, elitism=3, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, popSize=100, mutRate=0.1, elitism=1, ofInterest=1.0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
-        self.crossRate    = crossRate
         self.mutRate      = mutRate
         self.elitism      = elitism
         self.neuron       = neuron
         self.seq_data     = seq_data
-        self.domain       = (-5, 5)
+        self.domain       = (-2, 2)
         self.neuron_ix    = neuron_ix
         self.inds = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
         print(self.inds)
-
-    def isSilence(self, sequence):
-        non_silence_symbs = 0
-        for symb in sequence:
-            if symb[0] == "n":
-                non_silence_symbs += 1
-
-        return non_silence_symbs == 0
 
     def calcFitness(self, ind, experiments=30):
         label_guess = []
@@ -37,70 +28,76 @@ class GeneticAlgorithm:
             gen_seq, _ = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
             guess = self.neuron.predict_sentiment(self.seq_data, [gen_seq])
 
-            label_guess.append((guess - self.ofInterest)**2)
+            label_guess.append(np.abs(guess - self.ofInterest))
 
         # Penalize this individual with the prediction error
         # validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_shortest.txt"
         # error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
-        fitness = (sum(label_guess)/len(label_guess))
+        fitness = sum(label_guess)/len(label_guess)
+        # return 1.0/np.abs(np.sum(ind) - self.ofInterest)
         return 1.0 - fitness
-        # return (ind - self.ofInterest)**2
 
     def evaluate(self):
         fitness = []
         for i in range(self.popSize):
-            print("---->", "Evaluating ind", i)
             fitness.append(self.calcFitness(self.inds[i]))
         return np.array(fitness)
 
-    def cross(self, nextPop):
+    def cross(self, parents):
+        nextPop = []
+        for i in range(self.elitism):
+            nextPop.append(parents[i])
+
         for i in range(self.elitism, self.popSize - 1):
-            if np.random.random() < self.crossRate:
-                nextPop[i] = np.array((nextPop[i] + nextPop[i+1])/2.)
+            # one-point crossover
+            pos = np.random.randint(0, self.indSize)
+
+            # Take parents two-by-two
+            p1 = parents[i]
+            p2 = parents[i+1]
+
+            # Create two children with crossover
+            c1 = np.concatenate((p1[:pos], p2[pos:]))
+            c2 = np.concatenate((p2[:pos], p1[pos:]))
+
+            nextPop.append(c1)
+            nextPop.append(c2)
+
+        return np.array(nextPop)
 
     def mutate(self, nextPop):
         for i in range(self.elitism, self.popSize):
-            for gene in range(self.indSize):
+            for j in range(self.indSize):
                 if np.random.random() < self.mutRate:
-                    self.inds[i][gene] = np.random.uniform(self.domain[0], self.domain[1])
+                    self.inds[i][j] = np.random.uniform(self.domain[0], self.domain[1])
 
     def select(self, fitness):
         descending_args = np.argsort(-fitness)
         sorted_inds = self.inds[descending_args]
         sorted_fits = fitness[descending_args]
 
-        nextPop = []
+        parents = []
         for i in range(self.popSize):
             if i < self.elitism:
-                nextPop.append(sorted_inds[i][0])
+                parents.append(sorted_inds[i])
             else:
-                nextPop.append(self.roullete_wheel(sorted_inds, sorted_fits))
+                parents.append(self.roullete_wheel(sorted_inds, sorted_fits))
 
-        return np.array(nextPop)
+        return np.array(parents)
 
     def roullete_wheel(self, sorted_inds, sorted_fits):
-        pick = np.random.uniform(0, sum(sorted_fits))
+        sum_fitness = sum(sorted_fits)
+        pick = np.random.uniform(0, sum_fitness)
 
-        current = 0
         for i in range(self.popSize):
-            current += sorted_fits[i]
-            if current >= pick:
-                return sorted_inds[i][0]
+            if pick < sorted_fits[i]:
+                return sorted_inds[i]
+            pick -= sorted_fits[i]
 
-    def evolve(self, epochs=10):
-        for i in range(epochs):
-            print("-> Epoch", i)
-            fitness = self.evaluate()
-            nextPop = self.select(fitness)
-            print(fitness)
-            self.cross(nextPop)
-            self.mutate(nextPop)
+        return sorted_inds[i]
 
-            self.inds = nextPop
-
-        # Get best individual
-        fitness = self.evaluate()
+    def get_best_individual(self, fitness):
         descending_args = np.argsort(-fitness)
 
         best_fit = fitness[descending_args][0]
@@ -108,5 +105,19 @@ class GeneticAlgorithm:
 
         print("best ind", best_ind)
         print("best fit", best_fit)
-
         return best_ind, best_fit
+
+    def evolve(self, epochs=10):
+        for i in range(epochs):
+            print("-> Epoch", i)
+            fitness = self.evaluate()
+            self.get_best_individual(fitness)
+
+            parents = self.select(fitness)
+            nextPop = self.cross(parents)
+            self.mutate(nextPop)
+
+            self.inds = nextPop
+
+        # return best individual
+        return self.get_best_individual(fitness)
