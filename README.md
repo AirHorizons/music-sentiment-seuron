@@ -1,6 +1,6 @@
-# LEARNING TO GENERATE MUSIC WITH SENTIMENT
+# Learning to Generate Music with Sentiment
 
-This repository contains the source code to reproduce the ISMIR'19 paper "LEARNING TO GENERATE MUSIC WITH SENTIMENT", which proposes a deep learning method to generate music with a given sentiment (positive or negative).
+This repository contains the source code to reproduce the ISMIR'19 paper "Learning to Generate Music with Sentiment", which proposes a deep learning method to generate music with a given sentiment (positive or negative).
 
 ## Installing
 
@@ -8,9 +8,9 @@ This repository contains the source code to reproduce the ISMIR'19 paper "LEARNI
 $ pip3 install sentneuron
 ```
 
-## Examples
+## Results
 
-The scripts to reproduce the results of the paper are all inside the examples/ directory. 
+The scripts to reproduce the results of the paper are all inside the examples/ directory:
 
 0. Generate train/test shards for the generative model:
 ```
