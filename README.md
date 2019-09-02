@@ -1,15 +1,14 @@
-# README
+# LEARNING TO GENERATE MUSIC WITH SENTIMENT
 
-This is a object-oriented and self-contained reimplementation of OpenAI's Sentiment Neuron. It
-currently supports text and midi sequences.
+This repository contains the source code to reproduce the ISMIR'19 paper "LEARNING TO GENERATE MUSIC WITH SENTIMENT", which proposes a deep learning method to generate music with a given sentiment (positive or negative).
 
-# Installing
+## Installing
 
 ```
 $ pip install sentneuron
 ```
 
-# Examples
+## Examples
 
 This projects comes with two test scripts: one for training a new model and one for loading
 pre-trained models. Both scripts have an example of sampling sequences from the models.
@@ -29,10 +28,18 @@ To load a pre-trainned model:
 $ python examples/load_generative.py
 ```
 
-# Interactive
+## Interactive
 
 For running the interactive sampler, you will need to install the following dependecies: Flask
 
 ```
 $ pip install flask
 ```
+
+## TODO
+
+- Improve generate_shard.py script to load any type of data (not only text)
+- Update this README file with:
+  - Tutorial to reproduce results of ISMIR paper.
+  - Links to VGMIDI data.
+
