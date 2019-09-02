@@ -5,27 +5,20 @@ This repository contains the source code to reproduce the ISMIR'19 paper "LEARNI
 ## Installing
 
 ```
-$ pip install sentneuron
+$ pip3 install sentneuron
 ```
 
 ## Examples
 
-This projects comes with two test scripts: one for training a new model and one for loading
-pre-trained models. Both scripts have an example of sampling sequences from the models.
+The scripts to reproduce the results of the paper are all inside the examples/ directory. 
 
-To train a new model:
-
+0. Generate train/test shards for the generative model:
 ```
-$ python examples/train_generative_txt.py
+$ python3 examples/generate_shards.py -datadir input/generative/midi/vgmidi/ -data_type midi_perform
 ```
-
-After training, this script stores the model inside the "trained_models/" folder. You can
-then load it and sample sequences (either midi or text) using the following example:
-
-To load a pre-trainned model:
-
+1. Train a LSTM generative model using the unlabelled midi files: 
 ```
-$ python examples/load_generative.py
+$ python3 examples/train_generative.py
 ```
 
 ## Interactive
