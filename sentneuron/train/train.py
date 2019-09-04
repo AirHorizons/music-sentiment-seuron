@@ -48,7 +48,7 @@ def train_generative_model(train_data, test_data, data_type, embed_size, hidden_
     # Training model for predicting elements in a sequence.
     neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
 
-    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint=None, savepath)
+    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, None, savepath)
     print("Testing loss:", loss)
 
     return neuron, seq_data
