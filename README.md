@@ -12,11 +12,12 @@ $ pip3 install sentneuron
 
 The scripts to reproduce the results of the paper are all inside the examples/ directory:
 
-0. Generate train/test shards for the generative model:
+0. Generate 3 train shards and 1 test shard to train the mLSTM generative model:
 ```
-$ python3 examples/generate_shards.py -datadir input/generative/midi/vgmidi/ -data_type midi_perform
+$ python3 examples/generate_shards.py -datadir input/generative/midi/vgmidi/ -data_type midi_perform -shards 3
+
 ```
-1. Train a LSTM generative model using the unlabelled midi files: 
+1. Train a LSTM generative model using the unlabelled midi files:
 ```
 $ python3 examples/train_generative.py
 ```
@@ -35,4 +36,3 @@ $ pip install flask
 - Update this README file with:
   - Tutorial to reproduce results of ISMIR paper.
   - Links to VGMIDI data.
-
