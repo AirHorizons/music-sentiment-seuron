@@ -1,4 +1,5 @@
 # External imports
+import os
 import json
 import torch
 import torch.nn       as nn
@@ -164,16 +165,16 @@ class SentimentNeuron(nn.Module):
             # Return perplexity of the model
             return loss_avg/n_batches
 
-    def fit_sequence(self, seq_dataset, test_data, epochs=100, seq_length=100, lr=1e-3, grad_clip=5, batch_size=32, checkpoint=None):
+    def fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint, savepath):
         try:
             self.__fit_sequence(seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
         # Save final model
-        self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
+        self.save(seq_dataset, test_data, os.path.join(savepath, seq_dataset.name))
 
-        # Test model
+        # Test final model
         loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
         return loss
 

@@ -31,15 +31,15 @@ def load_generative_model(model_path):
 
     return neuron, seq_data, meta["test_data"], checkpoint
 
-def resume_generative_training(model_path, epochs=100, seq_length=256, lr=5e-4, grad_clip=5, batch_size=128):
+def resume_generative_training(model_path, epochs, seq_length, lr, grad_clip, batch_size, savepath):
     neuron, seq_data, test_data, checkpoint = load_generative_model(model_path)
 
-    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
+    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint, savepath)
     print("Testing loss:", loss)
 
     return neuron, seq_data
 
-def train_generative_model(train_data, test_data, data_type, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, seq_length=256, lr=5e-4, grad_clip=5, batch_size=128):
+def train_generative_model(train_data, test_data, data_type, embed_size, hidden_size, n_layers, dropout, epochs, seq_length, lr, grad_clip, batch_size, savepath):
     seq_data = load_generative_data_with_type(data_type, train_data)
 
     input_size  = seq_data.encoding_size
@@ -48,12 +48,12 @@ def train_generative_model(train_data, test_data, data_type, embed_size, hidden_
     # Training model for predicting elements in a sequence.
     neuron = sn.SentimentNeuron(input_size, embed_size, hidden_size, output_size, n_layers, dropout)
 
-    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size)
+    loss = neuron.fit_sequence(seq_data, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint=None, savepath)
     print("Testing loss:", loss)
 
     return neuron, seq_data
 
-def train_supervised_classification_model(seq_data_path, data_type, sent_data, embed_size, hidden_size, n_layers=1, dropout=0, epochs=100, lr=5e-4, batch_size=128):
+def train_supervised_classification_model(seq_data_path, data_type, sent_data, embed_size, hidden_size, n_layers, dropout, epochs, lr, batch_size):
     seq_data = load_generative_data_with_type(data_type, seq_data_path)
 
     input_size  = seq_data.encoding_size
