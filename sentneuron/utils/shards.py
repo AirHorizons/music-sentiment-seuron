@@ -2,7 +2,11 @@ import os
 import sys
 import random
 
-def load_data(datapath):
+import sentneuron as sn
+
+def load_data(data_type, datapath):
+    seq_data = sn.dataloaders.load_generative_data_with_type(data_type, datapath)
+
     pieces = []
 
     p_ix = 0

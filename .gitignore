@@ -10,3 +10,5 @@ trained/*
 !trained/.gitkeep
 
 *.npy
+
+input/generative/midi/vgmidi/*.txt
