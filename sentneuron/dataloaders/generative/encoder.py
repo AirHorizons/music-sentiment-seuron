@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 class Encoder(ABC):
     def __init__(self, datapath=None, vocab=None, data=None, name="sentneuron"):
         self.name = name
-        
+
         if datapath != None:
             self.data, self.vocab = self.load(datapath)
         else:
@@ -59,4 +59,7 @@ class Encoder(ABC):
         return self.slice(sequence, 0, len(sequence))
 
     def encode(self, symb):
+        if symb not in self.symbol_to_ix:
+            return 0
+
         return self.symbol_to_ix[symb]
