@@ -167,7 +167,7 @@ class SentimentNeuron(nn.Module):
 
     def fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint, savepath):
         try:
-            self.__fit_sequence(seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint)
+            self.__fit_sequence(seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint, savepath)
         except KeyboardInterrupt:
             print('Exiting from training early.')
 
@@ -178,7 +178,7 @@ class SentimentNeuron(nn.Module):
         loss = self.evaluate_sequence_fit(seq_dataset, seq_length, batch_size, test_data)
         return loss
 
-    def __fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint):
+    def __fit_sequence(self, seq_dataset, test_data, epochs, seq_length, lr, grad_clip, batch_size, checkpoint, savepath):
         # Loss function
         loss_function = nn.CrossEntropyLoss()
 
@@ -270,7 +270,7 @@ class SentimentNeuron(nn.Module):
             shard_in = 0
 
             # Save preliminary model
-            self.save(seq_dataset, test_data, "../trained/" + seq_dataset.name)
+            self.save(seq_dataset, test_data, os.path.join(savepath, seq_dataset.name))
 
     def __fit_sequence_log(self, epoch, epoch_lr, batch_ix, train_loss, test_loss, filename, seq_dataset, data, sample_init_range=(0, 20)):
         with torch.no_grad():
