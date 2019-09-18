@@ -36,6 +36,12 @@ $ mv shards input/generative/midi/vgmidi-shards
 python3 examples/train_generative.py -train_data input/generative/midi/vgmidi-shards -test_data input/generative/midi/vgmidi-shards/test/test_shard_0.txt -data_type midi_perform -save_path trained/
 ```
 
+#### 4. Train a Logistic Recression classifier using the trained (generative) LSTM hidden layer to encode the labelled midi files:  
+
+```
+python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-shards -sent_data_path input/classifier/midi/vgmidi/vgmidi.csv -results_path output/
+```
+
 ## Interactive
 
 For running the interactive sampler, you will need to install the following dependecies: Flask
