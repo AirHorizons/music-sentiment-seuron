@@ -12,22 +12,28 @@ $ pip3 install sentneuron
 
 The scripts to reproduce the results of the paper are all inside the examples/ directory:
 
-0. Generate 3 train shards and 1 test shard to train the mLSTM generative model:
+#### 0. Generate 3 train shards and 1 test shard to train the mLSTM generative model:
 ```
 $ python3 examples/generate_shards.py -datadir input/generative/midi/vgmidi/ -data_type midi_perform -shards 3
 ```
 
-1. Separate train and test shards in two different directories:
+#### 1. Separate train and test shards in two different directories:
 
 ```
 $ mkdir shards/test/
 $ mv shards/test_shard_* shards/test/
 ```
 
-2. Train a LSTM generative model using the unlabelled midi files:
+#### 2. Move shards data to the input directory:
 
 ```
-python3 examples/train_generative.py -train_data input/generative/shards/ -test_data input/generative/midi/shards/test/test_shard_0.txt -data_type midi_perform
+$ mv shards input/generative/midi/vgmidi-shards
+```
+
+#### 3. Train a LSTM generative model using the unlabelled midi files:
+
+```
+python3 examples/train_generative.py -train_data input/generative/midi/vgmidi-shards -test_data input/generative/midi/vgmidi-shards/test/test_shard_0.txt -data_type midi_perform -save_path trained/
 ```
 
 ## Interactive
