@@ -75,7 +75,7 @@ class GeneticAlgorithm:
         sorted_inds = self.inds[descending_args]
         sorted_fits = fitness[descending_args]
 
-        matingPool = np.zeros_lize(self.inds)
+        matingPool = np.zeros_like(self.inds)
 
         for i in range(self.elitism):
             matingPool[i] = sorted_inds[i]
