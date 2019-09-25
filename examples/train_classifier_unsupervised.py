@@ -41,7 +41,7 @@ for i in range(30):
     gen_pieces.append(final_cell)
 
     # Writing sampled sequence
-    seq_data.write(gen_seq, "../output/" + dataset_name + "_" + str(i))
+    seq_data.write(gen_seq, opt.model_path + dataset_name + "_" + str(i))
 
 guesses = neuron.predict_sentiment(seq_data, gen_pieces, transformed=True)
 for i in range(len(guesses)):

@@ -1,7 +1,7 @@
 import numpy as np
 
 class GeneticAlgorithm:
-    def __init__(self, neuron, neuron_ix, seq_data, popSize=100, mutRate=0.1, elitism=1, ofInterest=1.0):
+    def __init__(self, neuron, neuron_ix, seq_data, popSize=100, mutRate=0.1, elitism=1, ofInterest=0):
         self.ofInterest   = ofInterest
         self.popSize      = popSize
         self.indSize      = len(neuron_ix)
@@ -12,18 +12,18 @@ class GeneticAlgorithm:
         self.domain       = (-2, 2)
         self.neuron_ix    = neuron_ix
         self.inds = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
-        print(self.inds)
 
     def calcFitness(self, ind, experiments=30):
         label_guess = []
 
         # Override neuron weights with the gens of the individual
         override_neurons = {}
-        for i in range(len(self.neuron_ix)):
+        for i in range(self.indSize):
             n_ix = self.neuron_ix[i]
             override_neurons[n_ix] = ind[i]
 
         for i in range(experiments):
+            print("Calc fitness" + str(i))
             ini_seq = self.seq_data.str2symbols("\n")
             gen_seq, _ = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
             guess = self.neuron.predict_sentiment(self.seq_data, [gen_seq])
@@ -35,56 +35,53 @@ class GeneticAlgorithm:
         # error = self.neuron.evaluate(self.seq_data, 128, 256, validation_shard)
 
         fitness = sum(label_guess)/len(label_guess)
-        # return 1.0/np.abs(np.sum(ind) - self.ofInterest)
         return 1.0 - fitness
 
     def evaluate(self):
-        fitness = []
+        fitness = np.zeros(self.popSize)
         for i in range(self.popSize):
-            fitness.append(self.calcFitness(self.inds[i]))
-        return np.array(fitness)
+            fitness[i] = self.calcFitness(self.inds[i])
+        return fitness
 
     def cross(self, parents):
-        nextPop = []
+        nextPop = np.zeros_like(self.inds)
+        
         for i in range(self.elitism):
-            nextPop.append(parents[i])
+            nextPop[i] = parents[i]
 
-        for i in range(self.elitism, self.popSize - 1):
+        for i in range(self.elitism, self.popSize):
             # one-point crossover
             pos = np.random.randint(0, self.indSize)
 
             # Take parents two-by-two
-            p1 = parents[i]
-            p2 = parents[i+1]
+            p1 = parents[i-1]
+            p2 = parents[i]
 
             # Create two children with crossover
-            c1 = np.concatenate((p1[:pos], p2[pos:]))
-            c2 = np.concatenate((p2[:pos], p1[pos:]))
+            nextPop[i] = np.concatenate((p2[:pos], p1[pos:]))
 
-            nextPop.append(c1)
-            nextPop.append(c2)
-
-        return np.array(nextPop)
+        return nextPop
 
     def mutate(self, nextPop):
         for i in range(self.elitism, self.popSize):
             for j in range(self.indSize):
                 if np.random.random() < self.mutRate:
-                    self.inds[i][j] = np.random.uniform(self.domain[0], self.domain[1])
+                    nextPop[i][j] = np.random.uniform(self.domain[0], self.domain[1])
 
     def select(self, fitness):
         descending_args = np.argsort(-fitness)
+
         sorted_inds = self.inds[descending_args]
         sorted_fits = fitness[descending_args]
 
-        parents = []
+        parents = np.zeros_lize(self.inds)
         for i in range(self.popSize):
             if i < self.elitism:
-                parents.append(sorted_inds[i])
+                parents[i] = sorted_inds[i]
             else:
-                parents.append(self.roullete_wheel(sorted_inds, sorted_fits))
+                parents[i] = self.roullete_wheel(sorted_inds, sorted_fits)
 
-        return np.array(parents)
+        return parents
 
     def roullete_wheel(self, sorted_inds, sorted_fits):
         sum_fitness = sum(sorted_fits)
@@ -100,8 +97,8 @@ class GeneticAlgorithm:
     def get_best_individual(self, fitness):
         descending_args = np.argsort(-fitness)
 
-        best_fit = fitness[descending_args][0]
-        best_ind = self.inds[descending_args][0]
+        best_fit = fitness[descending_args[0]]
+        best_ind = self.inds[descending_args[0]]
 
         print("best ind", best_ind)
         print("best fit", best_fit)
@@ -118,6 +115,7 @@ class GeneticAlgorithm:
             self.mutate(nextPop)
 
             self.inds = nextPop
+            print("inds", self.inds)
 
         # return best individual
         return self.get_best_individual(fitness)

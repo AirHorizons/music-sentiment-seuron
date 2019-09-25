@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import sentneuron as sn
 
@@ -24,5 +25,5 @@ def evolve_weights(neuron, seq_data, results_path):
         override[int(sentneuron_ixs[i])] = best_ind[i]
 
     print(override)
-    with open('../output/ga_best.json', 'w') as fp:
+    with open(results_path + 'ga_best.json', 'w') as fp:
         json.dump(override, fp)
