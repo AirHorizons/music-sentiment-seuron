@@ -14,7 +14,7 @@ class GeneticAlgorithm:
         self.inds = np.random.uniform(self.domain[0], self.domain[1], (popSize, self.indSize))
 
     def calcFitness(self, ind, experiments=30):
-        label_guess = []
+        label_guess = np.zeros(experiments)
 
         # Override neuron weights with the gens of the individual
         override_neurons = {}
@@ -22,13 +22,14 @@ class GeneticAlgorithm:
             n_ix = self.neuron_ix[i]
             override_neurons[n_ix] = ind[i]
 
+        ini_seq = self.seq_data.str2symbols("\n")
         for i in range(experiments):
-            print("Calc fitness" + str(i))
-            ini_seq = self.seq_data.str2symbols("\n")
+            print("Calc Fitness:", i)
+
             gen_seq, _ = self.neuron.generate_sequence(self.seq_data, ini_seq, 128, 1.0, override=override_neurons)
             guess = self.neuron.predict_sentiment(self.seq_data, [gen_seq])
 
-            label_guess.append(np.abs(guess - self.ofInterest))
+            label_guess[i] = np.abs(guess - self.ofInterest)
 
         # Penalize this individual with the prediction error
         # validation_shard = "../input/generative/midi/vgmidi_shards/validation/vgmidi_11_shortest.txt"
@@ -45,7 +46,7 @@ class GeneticAlgorithm:
 
     def cross(self, parents):
         nextPop = np.zeros_like(self.inds)
-        
+
         for i in range(self.elitism):
             nextPop[i] = parents[i]
 
@@ -74,23 +75,25 @@ class GeneticAlgorithm:
         sorted_inds = self.inds[descending_args]
         sorted_fits = fitness[descending_args]
 
-        parents = np.zeros_lize(self.inds)
-        for i in range(self.popSize):
-            if i < self.elitism:
-                parents[i] = sorted_inds[i]
-            else:
-                parents[i] = self.roullete_wheel(sorted_inds, sorted_fits)
+        matingPool = np.zeros_lize(self.inds)
 
-        return parents
+        for i in range(self.elitism):
+            matingPool[i] = sorted_inds[i]
+
+        for i in range(self.elitism, self.popSize):
+            matingPool[i] = self.roullete_wheel(sorted_inds, sorted_fits)
+
+        return matingPool
 
     def roullete_wheel(self, sorted_inds, sorted_fits):
-        sum_fitness = sum(sorted_fits)
-        pick = np.random.uniform(0, sum_fitness)
+        pick = np.random.uniform(0, sum(sorted_fits))
 
+        fitnessSoFar = 0
         for i in range(self.popSize):
-            if pick < sorted_fits[i]:
+            fitnessSoFar += sorted_fits[i]
+
+            if pick < fitnessSoFar:
                 return sorted_inds[i]
-            pick -= sorted_fits[i]
 
         return sorted_inds[i]
 
