@@ -4,7 +4,7 @@ import sentneuron as sn
 
 from .ga import GeneticAlgorithm
 
-def evolve_weights(neuron, seq_data, results_path):
+def evolve_weights(neuron, seq_data, results_path, sentiment):
     n_not_zero = len(np.argwhere(neuron.sent_classfier.coef_))
     sentneuron_ixs = neuron.get_top_k_neuron_weights(k=n_not_zero)
 
@@ -14,7 +14,7 @@ def evolve_weights(neuron, seq_data, results_path):
     # sn.utils.plot_logits(results_path, trXt, np.array(trY), sentneuron_ixs, fold="fold_")
     sn.utils.plot_weight_contribs_and_save(results_path, neuron.sent_classfier.coef_, fold="fold_")
 
-    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=0)
+    genAlg = GeneticAlgorithm(neuron, sentneuron_ixs, seq_data, ofInterest=sentiment)
     best_ind, best_fit = genAlg.evolve()
 
     print("best_ind", best_ind)

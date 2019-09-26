@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser(description='train_classifier.py')
 
 parser.add_argument('-model_path'      , type=str, required=True,  help="Model metadata path.")
 parser.add_argument('-sent_data_path'  , type=str, required=True,  help="Sentiment dataset path.")
+parser.add_argument('-sentiment'       , type=int, default=1,      help="Desired sentiment of the pieces.")
 parser.add_argument('-results_path'    , type=str, required=True,  help="Path to save plots.")
 
 parser.add_argument('-pad', dest='pad', action='store_true')
@@ -25,10 +26,10 @@ neuron, seq_data, _ , _ = sn.train.load_generative_model(opt.model_path)
 
 # Load sentiment data from given path
 sent_data = sn.dataloaders.SentimentMidi(opt.sent_data_path, "sentence", "label", "id", "filepath", opt.pad, opt.balance, opt.separate)
-logreg_model = sn.train.train_unsupervised_classification_model(neuron, seq_data, sent_data)
+sn.train.train_unsupervised_classification_model(neuron, seq_data, sent_data)
 
 # evolve weights to generate either positive or negative pieces
-sn.evolve.evolve_weights(neuron, seq_data, opt.results_path)
+sn.evolve.evolve_weights(neuron, seq_data, opt.results_path, opt.sentiment)
 
 dataset_name = opt.model_path.split("/")[-1]
 
