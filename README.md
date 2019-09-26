@@ -36,10 +36,16 @@ $ mv shards input/generative/midi/vgmidi-shards
 python3 examples/train_generative.py -train_data input/generative/midi/vgmidi-shards -test_data input/generative/midi/vgmidi-shards/test/test_shard_0.txt -data_type midi_perform -save_path trained/
 ```
 
-#### 4. Train a Logistic Recression classifier using the trained (generative) LSTM hidden layer to encode the labelled midi files:  
+#### 4. Train a Logistic Recression (LR) classifier using the trained (generative) LSTM hidden layer to encode the labelled midi files and evolve LR weights to generate positive pieces:
 
 ```
-python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-shards -sent_data_path input/classifier/midi/vgmidi/vgmidi.csv -results_path output/
+python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-shards -sent_data_path input/classifier/midi/vgmidi/vgmidi.csv -results_path output/ -sentiment 1
+```
+
+#### 5. Train a Logistic Recression (LR) classifier using the trained (generative) LSTM hidden layer to encode the labelled midi files and evolve LR weights to generate negative pieces:
+
+```
+python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-shards -sent_data_path input/classifier/midi/vgmidi/vgmidi.csv -results_path output/ -sentiment 0
 ```
 
 ## Interactive
