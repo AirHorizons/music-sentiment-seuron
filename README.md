@@ -1,6 +1,6 @@
 # Learning to Generate Music with Sentiment
 
-This repository contains the source code to reproduce the results of the[ISMIR'19](https://ismir2019.ewi.tudelft.nl/) paper [Learning to Generate Music with Sentiment](http://www.lucasnferreira.com/papers/2019/ismir-learning.pdf). This paper proposes a deep learning method to generate music with a given sentiment (positive or negative). It uses a new dataset called VGMIDI which contains 95 labelled pieces according to sentiment as well as 728 non-labelled pieces. All pieces are piano arrangements of video game soundtracks in MIDI format.
+This repository contains the source code to reproduce the results of the [ISMIR'19](https://ismir2019.ewi.tudelft.nl/) paper [Learning to Generate Music with Sentiment](http://www.lucasnferreira.com/papers/2019/ismir-learning.pdf). This paper proposes a deep learning method to generate music with a given sentiment (positive or negative). It uses a new dataset called VGMIDI which contains 95 labelled pieces according to sentiment as well as 728 non-labelled pieces. All pieces are piano arrangements of video game soundtracks in MIDI format.
 
 ## Installing
 
