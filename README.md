@@ -59,18 +59,3 @@ python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-sha
 ```
 python3 examples/train_classifier_unsupervised.py -model_path trained/vgmidi-shards -sent_data_path input/classifier/midi/vgmidi/vgmidi.csv -results_path output/ -sentiment 0
 ```
-
-## Interactive
-
-For running the interactive sampler, you will need to install the following dependecies: Flask
-
-```
-$ pip install flask
-```
-
-## TODO
-
-- Improve generate_shard.py script to load any type of data (not only text)
-- Update this README file with:
-  - Tutorial to reproduce results of ISMIR paper.
-  - Links to VGMIDI data.
