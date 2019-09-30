@@ -1,6 +1,6 @@
 # Learning to Generate Music with Sentiment
 
-This repository contains the source code to reproduce the ISMIR'19 paper "Learning to Generate Music with Sentiment", which proposes a deep learning method to generate music with a given sentiment (positive or negative).
+This repository contains the source code to reproduce the [ISMIR'19](https://ismir2019.ewi.tudelft.nl/) paper [Learning to Generate Music with Sentiment](http://www.lucasnferreira.com/papers/2019/ismir-learning.pdf), which proposes a deep learning method to generate music with a given sentiment (positive or negative).
 
 ## Installing
 
