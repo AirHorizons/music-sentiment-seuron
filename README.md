@@ -4,8 +4,10 @@ This repository contains the source code to reproduce the ISMIR'19 paper "Learni
 
 ## Installing
 
+Consiresing you are in the projet's root directory, you can install it as follows:
+
 ```
-$ pip3 install sentneuron
+$ python3 setup.py install 
 ```
 
 ## Results
