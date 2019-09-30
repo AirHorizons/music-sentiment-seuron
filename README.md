@@ -4,7 +4,17 @@ This repository contains the source code to reproduce the ISMIR'19 paper "Learni
 
 ## Installing
 
-Consiresing you are in the projet's root directory, you can install it as follows:
+#### Dependencies
+
+This project depends on a few python3 modules, so you need to install them first:
+
+```
+$ pip3 install torch torchvision numpy music21
+```
+
+#### Main Module
+
+Consiresing you are in the project's root directory, you can install it as follows:
 
 ```
 $ python3 setup.py install 
